@@ -1,0 +1,5 @@
+wandb
+hydra-core
+pandas
+marshmallow_dataclass
+transformers
