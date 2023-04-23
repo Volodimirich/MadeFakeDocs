@@ -21,7 +21,7 @@ wandb login
 ## Конфигурирование
 Настройка параметров модели осуществляется в файле `configs/train_config.yaml`
 Описание параметров:
-
+```
 Logging metrics:
 * wandb_project --- Название проекта в `wandb` default="MadeFakeDocs"
 
@@ -47,7 +47,7 @@ TrainingArguments
 
 Optimizer
 * lr --- Скорость обучения 
-
+```
 ## Запуск
 **Все скрипты необходимо запускать из корневого каталога**
 
