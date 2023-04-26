@@ -1,0 +1,25 @@
+# Logging metrics
+wandb_project: "MadeFakeDocs"
+# Model
+#model_name_or_path: "gpt2"
+tokenizer_name: "gpt2"
+model_name_or_path: "./result"
+path_save_model: str
+
+# Dataset
+file_path: 'D:\\projects_andrey\\datasets_made\\fulldocs_txt.txt'
+block_size: 64
+mlm: False
+
+# TrainingArguments
+pre_trained: bool
+output_dir: "../result"
+overwrite_output_dir: True
+num_train_epochs: 3  # number of training epochs
+per_device_train_batch_size: 128  # batch size for training
+per_device_eval_batch_size: 128  # batch size for evaluation
+warmup_steps: 10  # number of warmup steps for learning rate scheduler
+gradient_accumulation_steps: 16   # to make "virtual" batch size larger
+
+# Optimizer
+lr: 1e-5
