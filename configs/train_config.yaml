@@ -1,25 +1,43 @@
 # Logging metrics
-wandb_project: "MadeFakeDocs"
+basic:
+  wandb_project: "MadeFakeDocs"
+
 # Model
-#model_name_or_path: "gpt2"
-tokenizer_name: "gpt2"
-model_name_or_path: "./result"
-path_save_model: str
+model:
+  model_name: "gpt2"
+  tokenizer_name: "gpt2"
+  local_path: './result'
+  use_local: False
+  path_save_model: str
+
 
 # Dataset
-file_path: 'D:\\projects_andrey\\datasets_made\\fulldocs_txt.txt'
-block_size: 64
-mlm: False
+dataset:
+  # file_path: 'D:\\projects_andrey\\datasets_made\\fulldocs_txt.txt'
+  save_dir: 'data'
+  # full_data - с сайта, part_data - размеченная с hugging face
+  dataset_name: part_data
+  block_size: 64
+  mlm: False
+
+  # Gdown помойка, надеюсь они починять folder_download
+  gdrive_dict:
+    full_data: https://drive.google.com/uc?id=1NCjkrgzKsOpwxHUMW-x0KQzSZbpm6g9P 
+    part_data: 
+      train: https://drive.google.com/uc?id=1x_Sho7xYqsJPvB8zDZWudSO4WsifhJfs
+      test: https://drive.google.com/uc?id=1R-k_Osj7NFi1rEvx0citRIbzXT7IzIAc
+      val: https://drive.google.com/uc?id=1RBoqgf2d5cGUNne6F7ZWZd4GUwQpSqjZ
 
 # TrainingArguments
-pre_trained: bool
-output_dir: "../result"
-overwrite_output_dir: True
-num_train_epochs: 3  # number of training epochs
-per_device_train_batch_size: 128  # batch size for training
-per_device_eval_batch_size: 128  # batch size for evaluation
-warmup_steps: 10  # number of warmup steps for learning rate scheduler
-gradient_accumulation_steps: 16   # to make "virtual" batch size larger
+train_params:
+  pre_trained: bool
+  output_dir: "../result"
+  overwrite_output_dir: True
+  num_train_epochs: 3  # number of training epochs
+  per_device_train_batch_size: 128  # batch size for training
+  per_device_eval_batch_size: 128  # batch size for evaluation
+  warmup_steps: 10  # number of warmup steps for learning rate scheduler
+  gradient_accumulation_steps: 16   # to make "virtual" batch size larger
 
-# Optimizer
-lr: 1e-5
+  # Optimizer
+  lr: 1e-5
