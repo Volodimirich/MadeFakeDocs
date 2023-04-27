@@ -43,7 +43,7 @@ def evaluate(params: EvaluationPipelineParams):
     logger.info(f'Uploading a dataset: {params.dataset_name}')
     dataset = load_dataset(params.dataset_name, params.dataset_version)
 
-    metrics = [LaBSE(), Bm25(tokenizer)]
+    metrics = [LaBSE(), Bm25()]
     rank_metrics = RankingMetrics(metrics)
     #
     # batch_queries = []

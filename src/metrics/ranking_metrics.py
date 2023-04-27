@@ -7,13 +7,13 @@ from src.metrics.evaluation_metrics import (
 class Bm25:
     """Класс метрики ранжирования bm25"""
 
-    def __init__(self, tokenizer):
-        self.tokenizer = tokenizer
+    def __init__(self):
+        pass
 
     def __name__(self):
         return "Bm25"
 
-    def ranking(self, query: str, sentences: list[str], labels: list[str]) -> list:
+    def ranking(self, query: str, sentences: list[str], labels: list[int]) -> list:
         """
         Функция ранжирования bm25
 
@@ -23,6 +23,8 @@ class Bm25:
             Список токенов запроса
         sentences: `list[str]`
             Список списков токенов текстов
+        labels: `list[int]`
+            Список меток текстов
 
         Returns
         ------------
@@ -37,7 +39,22 @@ class Bm25:
         scores = self._sorted(scores, labels)
         return scores
 
-    def _sorted(self, scores: list[str], labels: list[str]):
+    def _sorted(self, scores: list[float], labels: list[int]):
+        """
+        Функция сортировки оценки и лейблов
+
+        Parameters
+        ------------
+        scores: `list[float]`
+            Массив оценок ранка присвоенных ранкером
+        labels: `list[int]`
+            Массив меток
+
+        Returns
+        ------------
+        `list[list]`
+            Отсортированный список ранжируемых элементов по релевантности
+        """
         return sorted([item for item in zip(scores, labels)], key=lambda x: x[0], reverse=True)
 
     def _encode(self, sentences: str or list[str]):
@@ -72,7 +89,7 @@ class LaBSE:
     def __name__(self):
         return "LaBSE"
 
-    def ranking(self, query: str, sentences: list[str], labels: list[str]) -> list:
+    def ranking(self, query: str, sentences: list[str], labels: list[int]) -> list:
         """
         Функция ранжирования LaBSE
 
@@ -82,6 +99,8 @@ class LaBSE:
             Строка запроса
         sentences: `list[str]`
             Список строк текстов
+        labels: `list[int]`
+            Список меток текстов
 
         Returns
         ------------
@@ -95,10 +114,26 @@ class LaBSE:
         return scores
 
     def _sorted(self, scores: list[str], labels: list[str]):
+        """
+            Функция сортировки оценки и лейблов
+
+            Parameters
+            ------------
+            scores: `list[float]`
+                Массив оценок ранка присвоенных ранкером
+            labels: `list[int]`
+                Массив меток
+
+            Returns
+            ------------
+            `list[list]`
+                Отсортированный список ранжируемых элементов по релевантности
+            """
         return sorted([item for item in zip(scores, labels)], key=lambda x: x[0])
 
 
 class RankingMetrics:
+    """Класс аккумулирующий все метрики"""
     FAKE_DOC_LABEL: int = 2
 
     def __init__(self, metrics):
@@ -108,13 +143,23 @@ class RankingMetrics:
         self.fake_doc_above_relevant_one = FDARO(metrics)
         # Количество случаев когда фейковый документ вошел в топ 1
         self.fake_top_k = TopK(metrics)
-        # # Количество запросов
-        # self.cnt_queries = 0
-
         # Классы метрик для подсчета
         self.metrics = metrics
 
     def update(self, query: str, sentences: list[str], labels: list[int]):
+        """
+           Функция обновления всех метрик по переданным данным
+
+           Parameters
+           ------------
+           query: `str`
+               Строка запроса
+           sentences: `list[str]`
+               Список строк текстов
+           labels: `list[int]`
+               Список меток текстов
+
+           """
         if not isinstance(query, str):
             raise TypeError("The request must be a string!")
 
@@ -136,6 +181,14 @@ class RankingMetrics:
             self.average_place_fake_doc.update(cur_metric.__name__(), ranking_list, RankingMetrics.FAKE_DOC_LABEL)
 
     def get(self):
+        """
+        Функция для получения значения всех метрик
+
+        Returns
+        ----------
+        `dict`
+            Словарь значений метрик
+        """
         result = {}
         for key_, value in self.average_place_fake_doc.get().items():
             result[key_] = value
