@@ -3,3 +3,6 @@ hydra-core
 pandas
 marshmallow_dataclass
 transformers
+datasets
+rank_bm25
+sentence_transformers

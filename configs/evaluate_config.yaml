@@ -1,0 +1,12 @@
+# Model
+model_name_or_path: "./result"
+tokenizer_name: "gpt2"
+
+# Dataset
+dataset_name: 'ms_marco'
+dataset_version: "v2.1"
+
+# EvaluationArguments
+output_dir: "./result"
+batch_size: 32
+num_sample_file: 30

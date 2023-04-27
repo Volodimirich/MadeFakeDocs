@@ -40,7 +40,7 @@ def train(model, data_collator, train_dataset, training_args, optimizer, params)
     return training_results
 
 
-def predict(queries, model, tokenizer, device, predict_config):
+def predict(queries, model, tokenizer, device, predict_config=None):
     '''
     Функция для генерации текста по входным запросам пользователя
 
@@ -66,7 +66,7 @@ def predict(queries, model, tokenizer, device, predict_config):
     model.eval()
     with torch.no_grad():
         for query in queries:
-            input_ids = tokenizer.encode(query, return_tensors="pt").to(device)
+            input_ids = tokenizer.encode(query, return_tensors="pt", pad_token_id=tokenizer.eos_token_id).to(device)
             out = model.generate(input_ids,
                                  do_sample=True,
                                  num_beams=2,
