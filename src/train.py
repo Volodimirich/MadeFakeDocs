@@ -28,25 +28,23 @@ def training_pipeline(params: TrainingPipelineParams):
     logger.info(f"Name of the logging project wandb: {params.basic.wandb_project}")
     
     logger.info(f"Currently used device: {device}")
-    
     dataset_path_dict = get_data(params.dataset)
     
     model_info = f'Pretrained {params.model.model_name}' if not params.model.use_local \
         else f'Local {params.model.model_name} from {params.model.local_path}'
     logger.info(f'Initializing the model: {model_info}')
+    
     tokenizer = get_tokenizer(params.model.tokenizer_name)
     logger.info(f'Get tokenizer {params.model.tokenizer_name}')
 
-    # GPT2Tokenizer.from_pretrained(params.tokenizer_name)
-
     model = get_model(params.model.model_name, device, params.model.local_path, params.model.use_local)
     logger.info('Model created')
-    # GPT2LMHeadModel.from_pretrained(params.model_name_or_path).to(device)
 
     # Создание датасета
     train_dataset = get_dataset(params.dataset, dataset_path_dict, tokenizer)
 
     # Создание даталодера (нарезает текст на оптимальные по длине куски)
+    # TODO Решить, нужен ли нам collator, выбрать оптимальную подгрузку данных
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer,
                                                     mlm=params.dataset.mlm)
     logger.info('Loader finished')
