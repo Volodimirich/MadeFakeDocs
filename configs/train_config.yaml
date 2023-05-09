@@ -4,8 +4,8 @@ basic:
 
 # Model
 model:
-  model_name: "gpt2"
-  tokenizer_name: "gpt2"
+  model_name: "t5_v1_1-small"
+  tokenizer_name: "t5_v1_1-small"
   local_path: './result'
   use_local: False
   path_save_model: str

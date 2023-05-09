@@ -41,7 +41,7 @@ def get_data(dataset_dict: dict):
     return path_dict
 
 
-def get_dataset(dataset_dict, path_list, tokenizer):
+def get_dataset(dataset_dict, path_list, tokenizer, train_size=0.85, total_samples=50000, seed=42):
     dataset_name, bl_size = dataset_dict.dataset_name, dataset_dict.block_size
     train_path, test_path, val_path = path_list['train'], path_list['test'], path_list['val']
 
@@ -64,11 +64,25 @@ def get_dataset(dataset_dict, path_list, tokenizer):
         train_path = path_list['train']
         train_dataset = TextDataset(tokenizer=tokenizer, file_path=train_path, 
                             block_size=bl_size)
-    elif dataset_name == 'part_data':
+    if dataset_name == 'part_data':
+        INPUT_MAX_LENGTH = 32
+        TARGET_MAX_LENGTH = 128
+        
+        def preprocess_data(examples):
+            model_inputs = tokenizer(text=examples['query'], max_length=INPUT_MAX_LENGTH, truncation=True)
+            text_arrays = [''.join(x["passage_text"]) for x in examples["passages"]] 
+            labels = tokenizer(text_arrays, max_length=TARGET_MAX_LENGTH, truncation=True)
+            model_inputs["labels"] = labels["input_ids"]
+            return model_inputs
+        
         dataset = load_dataset('json', data_files={'train': [train_path], 
                                                    'test':[test_path], 
                                                    'validation':[val_path]})
-        raise NotImplementedError
+        
+        
+       
+        train_dataset = dataset['train'].select(range(total_samples))
+        train_dataset = train_dataset.map(preprocess_data, batched=True, num_proc=128)
     return train_dataset
         
 # 
