@@ -4,7 +4,7 @@ from transformers import GPT2LMHeadModel, GPT2Tokenizer, T5ForConditionalGenerat
 def get_tokenizer(tokenizer_name):
     if tokenizer_name == 'gpt2':
         return GPT2Tokenizer.from_pretrained('gpt2')
-    elif tokenizer_name == 't5_v1_1-small':
+    elif tokenizer_name == 't5_v1_1-large':
         return T5Tokenizer.from_pretrained("google/t5-v1_1-large")
 
 

@@ -4,11 +4,14 @@ basic:
 
 # Model
 model:
-  model_name: "t5_v1_1-small"
-  tokenizer_name: "t5_v1_1-small"
+  model_name: "gpt2"
+  tokenizer_name: "gpt2"
   local_path: './result'
   use_local: False
   path_save_model: str
+  input_max_length: 32
+  target_max_length: 128
+  total_samples: 500
 
 
 # Dataset
@@ -17,7 +20,7 @@ dataset:
   save_dir: 'data'
   # full_data - с сайта, part_data - размеченная с hugging face
   dataset_name: part_data
-  block_size: 64
+  block_size: 16
   mlm: False
 
   # Gdown помойка, надеюсь они починять folder_download

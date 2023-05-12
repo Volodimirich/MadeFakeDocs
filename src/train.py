@@ -18,7 +18,7 @@ from transformers import (T5Tokenizer, T5ForConditionalGeneration, AutoTokenizer
 from enities.training_pipeline_params import TrainingPipelineParams
 # from ..configs.logger_config import LOGGING_CONFIG
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
 
 logging.config.dictConfig(LOGGING_CONFIG)
@@ -44,7 +44,10 @@ def training_pipeline(params: TrainingPipelineParams):
     logger.info('Model created')
 
     # Создание датасета
-    train_dataset = get_dataset(params.dataset, dataset_path_dict, tokenizer)
+    train_dataset = get_dataset(params.dataset, dataset_path_dict, tokenizer, 
+                                total_samples=params.model.total_samples, 
+                                input_max_length=params.model.input_max_length,
+                                target_max_length=params.model.target_max_length)
     print(device)
     # Создание даталодера (нарезает текст на оптимальные по длине куски)
     # TODO Решить, нужен ли нам collator, выбрать оптимальную подгрузку данных
