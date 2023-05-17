@@ -7,6 +7,7 @@ def get_tokenizer(tokenizer_name):
         if tokenizer.pad_token is None:
             # tokenizer.add_special_tokens({'pad_token': '[PAD]'})
             tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.padding_side= 'left'
         return tokenizer
 
     elif tokenizer_name in {'t5-v1_1-large', 't5-v1_1-small'}:

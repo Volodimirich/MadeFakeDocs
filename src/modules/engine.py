@@ -40,7 +40,7 @@ def train(model, data_collator, train_dataset, training_args, optimizer, params)
     return training_results
 
 
-def predict(queries, model, tokenizer, device, predict_config):
+def predict(batch_queries, model, tokenizer, device, predict_config):
     '''
     Функция для генерации текста по входным запросам пользователя
 
@@ -64,18 +64,18 @@ def predict(queries, model, tokenizer, device, predict_config):
     '''
     results = []
     model.eval()
+    model.to(device)
+    batch_queries = batch_queries.to(device)
     with torch.no_grad():
-        for query in queries:
-            input_ids = tokenizer.encode(query, return_tensors="pt").to(device)
-            out = model.generate(input_ids,
-                                 pad_token_id=tokenizer.eos_token_id,
-                                 do_sample=predict_config.do_sample,
-                                 num_beams=predict_config.num_beams,
-                                 temperature=predict_config.temperature,
-                                 top_p=predict_config.top_p,
-                                 max_length=predict_config.max_length,
-                                 )
+        out = model.generate(batch_queries,
+                             pad_token_id=tokenizer.eos_token_id,
+                             do_sample=predict_config.do_sample,
+                             num_beams=predict_config.num_beams,
+                             temperature=predict_config.temperature,
+                             top_p=predict_config.top_p,
+                             max_length=predict_config.max_length,
+                             )
 
-            generated_text = list(map(tokenizer.decode, out))[0]
-            results.append(generated_text)
+        generated_text = tokenizer.batch_decode(out, skip_special_tokens=True)
+        results.extend(generated_text) #[text.detach().cpu().tolist() for text in generated_text])
     return results

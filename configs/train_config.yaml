@@ -7,12 +7,13 @@ model:
 # "t5-v1_1-small", "t5-v1_1-large", "gpt2"
   model_name: "t5-v1_1-small"
   tokenizer_name: "t5-v1_1-small"
-  local_path: './result'
+  local_path: './result_gpt2'
   use_local: False
   path_save_model: str
   input_max_length: 32
   target_max_length: 32
-  total_samples: 500
+  total_samples: 500000
+  type_of_training: "CLM"
 
 
 # Dataset
@@ -21,7 +22,7 @@ dataset:
   save_dir: 'data'
   # full_data - с сайта, part_data - размеченная с hugging face
   dataset_name: part_data
-  block_size: 16
+  block_size: 64
   mlm: False
 
   # Gdown помойка, надеюсь они починять folder_download
@@ -35,9 +36,9 @@ dataset:
 # TrainingArguments
 train_params:
   pre_trained: bool
-  output_dir: "../result"
+  output_dir: "./result_t5"
   overwrite_output_dir: True
-  num_train_epochs: 3  # number of training epochs
+  num_train_epochs: 1  # number of training epochs
   per_device_train_batch_size: 128  # batch size for training
   per_device_eval_batch_size: 128  # batch size for evaluation
   warmup_steps: 10  # number of warmup steps for learning rate scheduler
