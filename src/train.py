@@ -1,4 +1,7 @@
 import os
+
+import wandb
+
 from logger_config.config import LOGGING_CONFIG
 
 import hydra
@@ -16,9 +19,10 @@ from transformers import (T5Tokenizer, T5ForConditionalGeneration, AutoTokenizer
                           DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer, EarlyStoppingCallback)
 
 from enities.training_pipeline_params import TrainingPipelineParams
+from modules.data import TypeTraining
 # from ..configs.logger_config import LOGGING_CONFIG
 
-device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
 logging.config.dictConfig(LOGGING_CONFIG)
@@ -27,12 +31,14 @@ logger = logging.getLogger()
 
 @hydra.main(version_base=None, config_path='../configs', config_name='train_config')
 def training_pipeline(params: TrainingPipelineParams):
+    # wandb.login(relogin=True)
+    os.environ["WANDB_ENTITY"] = "madefakedocs"
     os.environ['WANDB_PROJECT'] = params.basic.wandb_project
     logger.info(f"Name of the logging project wandb: {params.basic.wandb_project}")
     
     logger.info(f"Currently used device: {device}")
     dataset_path_dict = get_data(params.dataset)
-    
+
     model_info = f'Pretrained {params.model.model_name}' if not params.model.use_local \
         else f'Local {params.model.model_name} from {params.model.local_path}'
     logger.info(f'Initializing the model: {model_info}')
@@ -41,13 +47,17 @@ def training_pipeline(params: TrainingPipelineParams):
     logger.info(f'Get tokenizer {params.model.tokenizer_name}')
 
     model = get_model(params.model.model_name, device, params.model.local_path, params.model.use_local)
+    # New
+    model.resize_token_embeddings(len(tokenizer))
+
     logger.info('Model created')
 
     # Создание датасета
     train_dataset = get_dataset(params.dataset, dataset_path_dict, tokenizer, 
                                 total_samples=params.model.total_samples, 
                                 input_max_length=params.model.input_max_length,
-                                target_max_length=params.model.target_max_length)
+                                target_max_length=params.model.target_max_length,
+                                type_training=TypeTraining.CLM)
     print(device)
     # Создание даталодера (нарезает текст на оптимальные по длине куски)
     # TODO Решить, нужен ли нам collator, выбрать оптимальную подгрузку данных

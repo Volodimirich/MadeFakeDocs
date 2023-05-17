@@ -7,4 +7,5 @@ python-dotenv==1.0.0
 boto3==1.26.130
 torch
 gdown
-datasets    
+datasets
+docs-ranking-metrics==0.0.3

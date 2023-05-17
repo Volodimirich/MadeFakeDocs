@@ -1,0 +1,49 @@
+# Model
+model:
+# "t5-v1_1-small", "t5-v1_1-large", "gpt2"
+  model_name: "gpt2"
+  tokenizer_name: "gpt2"
+  local_path: './result_big'
+  use_local: True
+  path_save_model: str
+  input_max_length: 32
+  target_max_length: 32
+  total_samples: 500
+  predict_param:
+    do_sample: True
+    num_beams: 2
+    temperature: 1.5
+    top_p: 0.9
+    max_length: 50
+
+
+# Dataset
+dataset:
+  # file_path: 'D:\\projects_andrey\\datasets_made\\fulldocs_txt.txt'
+  save_dir: 'data'
+  # full_data - с сайта, part_data - размеченная с hugging face
+  dataset_name: part_data
+  block_size: 64
+  mlm: False
+
+  # Gdown помойка, надеюсь они починять folder_download
+  gdrive_dict:
+    full_data: https://drive.google.com/uc?id=1NCjkrgzKsOpwxHUMW-x0KQzSZbpm6g9P
+    part_data:
+      train: https://drive.google.com/uc?id=1x_Sho7xYqsJPvB8zDZWudSO4WsifhJfs
+      test: https://drive.google.com/uc?id=1R-k_Osj7NFi1rEvx0citRIbzXT7IzIAc
+      val: https://drive.google.com/uc?id=1RBoqgf2d5cGUNne6F7ZWZd4GUwQpSqjZ
+#
+## TrainingArguments
+#train_params:
+#  pre_trained: bool
+#  output_dir: "../result"
+#  overwrite_output_dir: True
+#  num_train_epochs: 3  # number of training epochs
+#  per_device_train_batch_size: 128  # batch size for training
+#  per_device_eval_batch_size: 128  # batch size for evaluation
+#  warmup_steps: 10  # number of warmup steps for learning rate scheduler
+#  gradient_accumulation_steps: 16   # to make "virtual" batch size larger
+#
+#  # Optimizer
+#  lr: 1e-5

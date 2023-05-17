@@ -3,7 +3,12 @@ from transformers import GPT2LMHeadModel, GPT2Tokenizer, T5ForConditionalGenerat
 
 def get_tokenizer(tokenizer_name):
     if tokenizer_name == 'gpt2':
-        return GPT2Tokenizer.from_pretrained('gpt2')
+        tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+        if tokenizer.pad_token is None:
+            # tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+            tokenizer.pad_token = tokenizer.eos_token
+        return tokenizer
+
     elif tokenizer_name in {'t5-v1_1-large', 't5-v1_1-small'}:
         return T5Tokenizer.from_pretrained("google/t5-v1_1-small")
     else:

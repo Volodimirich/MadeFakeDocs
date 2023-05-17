@@ -68,11 +68,12 @@ def predict(queries, model, tokenizer, device, predict_config):
         for query in queries:
             input_ids = tokenizer.encode(query, return_tensors="pt").to(device)
             out = model.generate(input_ids,
-                                 do_sample=True,
-                                 num_beams=2,
-                                 temperature=1.5,
-                                 top_p=0.9,
-                                 max_length=100,
+                                 pad_token_id=tokenizer.eos_token_id,
+                                 do_sample=predict_config.do_sample,
+                                 num_beams=predict_config.num_beams,
+                                 temperature=predict_config.temperature,
+                                 top_p=predict_config.top_p,
+                                 max_length=predict_config.max_length,
                                  )
 
             generated_text = list(map(tokenizer.decode, out))[0]
