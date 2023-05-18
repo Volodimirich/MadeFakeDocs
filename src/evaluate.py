@@ -8,6 +8,8 @@ import shutil
 import logging
 # import pandas as pd
 from tqdm import tqdm
+import random
+import yaml
 # from pathlib import Path
 # from datetime import datetime
 # from datasets import load_dataset
@@ -37,10 +39,11 @@ def evaluate(params: EvaluationPipelineParams):
     folder_result_name = os.path.join(params.result.path_to_save_result, folder_result_name)
     os.makedirs(params.result.path_to_save_result, exist_ok=True)
     os.makedirs(folder_result_name, exist_ok=True)
-    # path_to_save_params = os.path.join(folder_result_name, "params.json")
-    # tt = dict(params)
-    # with open(path_to_save_params, 'w') as f:
-    #     json.dump(tt, f)
+    path_to_save_params = os.path.join(folder_result_name, "params.yaml")
+    try:
+        shutil.copyfile(os.path.join('./configs', 'evaluate_config.yaml'), path_to_save_params)
+    except FileNotFoundError:
+        logger.warning("The configuration file could not be copied!")
 
     logger.info(f"Currently used device: {device}")
     dataset_path_dict = get_data(params.dataset)
@@ -65,15 +68,17 @@ def evaluate(params: EvaluationPipelineParams):
 
     test_dataset.set_format(type="torch", columns=["input_ids", "passages"])
     eval_dataloader = DataLoader(test_dataset, batch_size=params.model.batch_size)
+    number_batches_save = [random.randint(0, len(eval_dataloader) - 1) for _ in range(params.result.number_examples_batch)]
+    examples_of_generation = []
 
     metrics = [LaBSE(), Bm25()]
     rank_metrics = RankingMetrics(metrics)
 
     logger.info(f'The dataset is loaded!')
-    for row in tqdm(eval_dataloader,
-                    total=len(eval_dataloader),
-                    desc="Generating predictions...",
-                    ncols=80):
+    for ind_batch, row in tqdm(enumerate(eval_dataloader),
+                               total=len(eval_dataloader),
+                               desc="Generating predictions...",
+                               ncols=80):
 
         query = tokenizer.batch_decode(row["input_ids"], skip_special_tokens=True)
 
@@ -88,13 +93,25 @@ def evaluate(params: EvaluationPipelineParams):
 
         for ind in range(len(query)):
             updated_sequence = list(sentences[ind])
-            updated_sequence.append(generated_text[ind][len(query[ind]):])
+            if params.result.gpt_postprocessing and params.model.model_name.find("gpt"):
+                result_text = generated_text[ind][len(query[ind]):]
+            else:
+                result_text = generated_text[ind]
+
+            updated_sequence.append(result_text)
+
             updated_labels = list(labels[ind])
             updated_labels.append(RankingMetrics.FAKE_DOC_LABEL)
 
             rank_metrics.update(query[ind], updated_sequence, updated_labels)
-            updated_labels.clear()
-            updated_sequence.clear()
+
+            if params.result.save_examples and ind_batch in number_batches_save:
+                examples = {
+                    "passage_text": updated_sequence[:-1],
+                    "is_selected": updated_labels[:-1],
+                    "generated_text": result_text
+                }
+                examples_of_generation.append(examples)
 
     logger.info(f"Results:")
     result_metrics = rank_metrics.get()
@@ -107,6 +124,11 @@ def evaluate(params: EvaluationPipelineParams):
     with open(path_to_save_metrics, 'w') as f:
         json.dump(result_metrics, f)
 
+    if params.result.save_examples:
+        path_to_save_examples = os.path.join(folder_result_name, "Examples.json")
+        logger.info(f"Save examples: {path_to_save_examples}")
+        with open(path_to_save_examples, 'w') as f:
+            json.dump(examples_of_generation, f)
 
 if __name__ == "__main__":
     evaluate()

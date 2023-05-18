@@ -2,7 +2,7 @@
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, T5ForConditionalGeneration, T5Tokenizer
 
 def get_tokenizer(tokenizer_name):
-    if tokenizer_name == 'gpt2':
+    if tokenizer_name in ['gpt2', "sberbank-ai/rugpt3large_based_on_gpt2"] :
         tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
         if tokenizer.pad_token is None:
             # tokenizer.add_special_tokens({'pad_token': '[PAD]'})
@@ -17,7 +17,7 @@ def get_tokenizer(tokenizer_name):
 
 
 def get_model(model_name, device, local_path='', is_local=False):
-    if model_name == 'gpt2':
+    if model_name  in ['gpt2', "sberbank-ai/rugpt3large_based_on_gpt2"]:
         model = local_path if is_local else model_name
         return GPT2LMHeadModel.from_pretrained(model).to(device)
     elif model_name in {'t5-v1_1-large', 't5-v1_1-small'}:
