@@ -66,16 +66,16 @@ def predict(batch_queries, model, tokenizer, device, predict_config):
     model.eval()
     model.to(device)
     batch_queries = batch_queries.to(device)
-    with torch.no_grad():
-        out = model.generate(batch_queries,
-                             pad_token_id=tokenizer.eos_token_id,
-                             do_sample=predict_config.do_sample,
-                             num_beams=predict_config.num_beams,
-                             temperature=predict_config.temperature,
-                             top_p=predict_config.top_p,
-                             max_length=predict_config.max_length,
-                             )
 
-        generated_text = tokenizer.batch_decode(out, skip_special_tokens=True)
-        results.extend(generated_text) #[text.detach().cpu().tolist() for text in generated_text])
+    out = model.generate(batch_queries,
+                         pad_token_id=tokenizer.eos_token_id,
+                         do_sample=predict_config.do_sample,
+                         num_beams=predict_config.num_beams,
+                         temperature=predict_config.temperature,
+                         top_p=predict_config.top_p,
+                         max_length=predict_config.max_length,
+                         )
+
+    generated_text = tokenizer.batch_decode(out, skip_special_tokens=True)
+    results.extend(generated_text)
     return results
