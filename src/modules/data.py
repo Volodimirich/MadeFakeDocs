@@ -58,19 +58,22 @@ def padding_passages(examples, max_length):
     return examples
 
 
-def groups_texts(examples, tokenizer, block_size):
+def groups_texts(examples, tokenizer, block_size, labels):
     # Concatenate all texts.
     # block_size = 64
     concatenated_text = {}
     for ind_example, cur_example in enumerate(examples["passages"]):
         concatenated_text[ind_example] = ""
         for ind, cur_text in enumerate(cur_example["passage_text"]):
-            if cur_example["is_selected"][ind]:
+            if cur_example["is_selected"][ind] in labels:
                 concatenated_text[ind_example] += examples["query"][ind_example]
+                concatenated_text[ind_example] += cur_text + tokenizer.eos_token
 
-            concatenated_text[ind_example] += cur_text
-
-    tokenized_text = {k: tokenizer(text=concatenated_text[k], truncation=True)["input_ids"] for k in
+    tokenized_text = {k: tokenizer(text=concatenated_text[k],
+                                   truncation=True,
+                                   return_overflowing_tokens=True,
+                                   return_length=True,
+                                   )["input_ids"] for k in
                       concatenated_text.keys()}
 
     result = {
@@ -84,7 +87,7 @@ def groups_texts(examples, tokenizer, block_size):
     return result
 
 
-def get_dataset(dataset_dict, path_list, tokenizer, total_samples=500,
+def get_dataset(dataset_dict, path_list, tokenizer, labels, total_samples=500,
                 input_max_length=32, target_max_length=128,
                 type_training=TypeTraining.TEACHER, type_dataset="train"):
     dataset_name, bl_size = dataset_dict.dataset_name, dataset_dict.block_size
@@ -128,8 +131,8 @@ def get_dataset(dataset_dict, path_list, tokenizer, total_samples=500,
         elif type_training == TypeTraining.CLM:
 
             fun_groups_texts = functools.partial(groups_texts, tokenizer=tokenizer,
-                                                 block_size=bl_size)
-            train_dataset = train_dataset.map(fun_groups_texts, batched=True, num_proc=32,
+                                                 block_size=bl_size, labels=labels)
+            train_dataset = train_dataset.map(fun_groups_texts, batched=True, num_proc=32, load_from_cache_file=False,
                                               remove_columns=["passages", 'answers',
                                                               "query", "query_id",
                                                               "query_type",

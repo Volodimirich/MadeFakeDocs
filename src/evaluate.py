@@ -9,10 +9,6 @@ import logging
 # import pandas as pd
 from tqdm import tqdm
 import random
-import yaml
-# from pathlib import Path
-# from datetime import datetime
-# from datasets import load_dataset
 from modules.data import get_data, get_dataset
 from modules.model import get_tokenizer, get_model
 from logger_config.config import LOGGING_CONFIG
@@ -23,7 +19,7 @@ from transformers import DataCollatorForSeq2Seq
 from modules.engine import predict
 from modules.data import TypeTraining
 from torch.utils.data import DataLoader
-from docs_ranking_metrics import LaBSE, Bm25, RankingMetrics
+from docs_ranking_metrics import LaBSE, Bm25, USE, MsMarcoST, MsMarcoCE, RankingMetrics
 import datetime
 
 logging.config.dictConfig(LOGGING_CONFIG)
@@ -61,6 +57,7 @@ def evaluate(params: EvaluationPipelineParams):
     model.resize_token_embeddings(len(tokenizer))
     # Создание датасета
     test_dataset = get_dataset(params.dataset, dataset_path_dict, tokenizer,
+                               labels = [1],
                                total_samples=params.model.total_samples,
                                input_max_length=params.model.input_max_length,
                                target_max_length=params.model.target_max_length,
@@ -68,10 +65,11 @@ def evaluate(params: EvaluationPipelineParams):
 
     test_dataset.set_format(type="torch", columns=["input_ids", "passages"])
     eval_dataloader = DataLoader(test_dataset, batch_size=params.model.batch_size)
-    number_batches_save = [random.randint(0, len(eval_dataloader) - 1) for _ in range(params.result.number_examples_batch)]
+    number_batches_save = [random.randint(0, len(eval_dataloader) - 1) for _ in
+                           range(params.result.number_examples_batch)]
     examples_of_generation = []
 
-    metrics = [LaBSE(), Bm25()]
+    metrics = [LaBSE(), Bm25(), USE(), MsMarcoST(), MsMarcoCE()]
     rank_metrics = RankingMetrics(metrics)
 
     logger.info(f'The dataset is loaded!')
@@ -93,7 +91,7 @@ def evaluate(params: EvaluationPipelineParams):
 
         for ind in range(len(query)):
             updated_sequence = list(sentences[ind])
-            if params.result.gpt_postprocessing and params.model.model_name.find("gpt"):
+            if params.result.gpt_postprocessing and params.model.model_name.find("gpt") != -1:
                 result_text = generated_text[ind][len(query[ind]):]
             else:
                 result_text = generated_text[ind]
@@ -107,8 +105,9 @@ def evaluate(params: EvaluationPipelineParams):
 
             if params.result.save_examples and ind_batch in number_batches_save:
                 examples = {
-                    "passage_text": updated_sequence[:-1],
-                    "is_selected": updated_labels[:-1],
+                    "query": query[ind],
+                    # "passage_text": updated_sequence[:-1],
+                    # "is_selected": updated_labels[:-1],
                     "generated_text": result_text
                 }
                 examples_of_generation.append(examples)
@@ -129,6 +128,7 @@ def evaluate(params: EvaluationPipelineParams):
         logger.info(f"Save examples: {path_to_save_examples}")
         with open(path_to_save_examples, 'w') as f:
             json.dump(examples_of_generation, f)
+
 
 if __name__ == "__main__":
     evaluate()

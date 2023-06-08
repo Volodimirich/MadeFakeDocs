@@ -15,8 +15,8 @@ from transformers import Trainer, TrainingArguments
 from modules.engine import (
     train
 )
-from transformers import (T5Tokenizer, T5ForConditionalGeneration, AutoTokenizer, AutoModel, 
-                          DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer, EarlyStoppingCallback)
+# from transformers import (T5Tokenizer, T5ForConditionalGeneration, AutoTokenizer, AutoModel,
+#                           DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer, EarlyStoppingCallback)
 
 from enities.training_pipeline_params import TrainingPipelineParams
 from modules.data import TypeTraining
@@ -53,7 +53,8 @@ def training_pipeline(params: TrainingPipelineParams):
     logger.info('Model created')
 
     # Создание датасета
-    train_dataset = get_dataset(params.dataset, dataset_path_dict, tokenizer, 
+    train_dataset = get_dataset(params.dataset, dataset_path_dict, tokenizer,
+                                labels=[1],
                                 total_samples=params.model.total_samples, 
                                 input_max_length=params.model.input_max_length,
                                 target_max_length=params.model.target_max_length,
@@ -61,9 +62,9 @@ def training_pipeline(params: TrainingPipelineParams):
     print(device)
     # Создание даталодера (нарезает текст на оптимальные по длине куски)
     # TODO Решить, нужен ли нам collator, выбрать оптимальную подгрузку данных
-    # data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer,
-                                                    # mlm=params.dataset.mlm)
-    data_collator = DataCollatorForSeq2Seq(tokenizer)
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer,
+                                                    mlm=params.dataset.mlm)
+    # data_collator = DataCollatorForSeq2Seq(tokenizer)
     logger.info('Loader finished')
     training_args = TrainingArguments(
         logging_strategy="epoch",
@@ -74,7 +75,8 @@ def training_pipeline(params: TrainingPipelineParams):
         per_device_eval_batch_size=params.train_params.per_device_eval_batch_size,  # batch size for evaluation
         warmup_steps=params.train_params.warmup_steps,  # number of warmup steps for learning rate scheduler
         gradient_accumulation_steps=params.train_params.gradient_accumulation_steps,  # to make "virtual" batch size larger
-        report_to="wandb"
+        report_to="wandb",
+        save_strategy="epoch"
     )
     optimizer = torch.optim.AdamW(model.parameters(), lr=params.train_params.lr)
     logger.info('Starting trained...')
