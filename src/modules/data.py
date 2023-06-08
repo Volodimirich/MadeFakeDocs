@@ -34,18 +34,34 @@ def get_data(dataset_dict: dict):
         path_dict = {'train': os.path.join(data_path, 'train.jsonl'),
                      'test': os.path.join(data_path, 'test.jsonl'),
                      'val': os.path.join(data_path, 'val.jsonl')}
+    elif dataset_name == 'made_data':
+        path_dict = {'train': os.path.join(data_path, 'filtred_df.csv'),
+                'test':  None,
+                'val': None}
+        # path_dict = {'train': os.path.join(data_path, 'assessors_train_l_q_u_t_m_b_ql.tsv'),
+        #              'test':  os.path.join(data_path, 'assessors_test_l_q_u_t_m_b_ql.tsv'),
+        #              'val': None}
     return path_dict
 
 
-def preprocess_data(examples, tokenizer, input_max_length, target_max_length):
-    model_inputs = tokenizer(text=examples['query'],
-                             max_length=input_max_length,
-                             truncation=True, padding="max_length")
-    text_arrays = [''.join(x["passage_text"]) for x in examples["passages"]]
-    text_labels = [x["is_selected"] for x in examples["passages"]]
-    labels = tokenizer(text_arrays, max_length=target_max_length, truncation=True)
-    model_inputs["labels"] = labels["input_ids"]
-    model_inputs['pos_label'] = text_labels
+def preprocess_data(examples, tokenizer, input_max_length, target_max_length, mode='part_data'):
+    if mode == 'part_data':
+        model_inputs = tokenizer(text=examples['query'],
+                                max_length=input_max_length,
+                                truncation=True, padding="max_length")
+        text_arrays = [''.join(x["passage_text"]) for x in examples["passages"]]
+        text_labels = [x["is_selected"] for x in examples["passages"]]
+        labels = tokenizer(text_arrays, max_length=target_max_length, truncation=True)
+        model_inputs["labels"] = labels["input_ids"]
+        model_inputs['pos_label'] = text_labels
+    elif mode == 'made_data':
+        model_inputs = tokenizer(text=examples['query'],
+                                max_length=input_max_length,
+                                truncation=True, padding="max_length")
+        labels = tokenizer(examples['body'], max_length=target_max_length, truncation=True)
+        model_inputs["labels"] = labels["input_ids"]
+        model_inputs['pos_label'] = examples['labels']
+        
     return model_inputs
 
 
@@ -83,8 +99,34 @@ def groups_texts(examples, tokenizer, block_size):
     result["labels"] = result["input_ids"].copy()
     return result
 
+def groups_texts_made(examples, tokenizer, block_size):
+    # Concatenate all texts.
+    # block_size = 64
+    concatenated_text = {}
+    for ind_example, cur_example in enumerate(examples["body"]):
+        concatenated_text[ind_example] = ""
+        concatenated_text[ind_example] += examples["query"][ind_example]
+        concatenated_text[ind_example] += cur_example + tokenizer.eos_token
 
-def get_dataset(dataset_dict, path_list, tokenizer, total_samples=500,
+    tokenized_text = {k: tokenizer(text=concatenated_text[k],
+                                   truncation=True,
+                                   return_overflowing_tokens=True,
+                                   return_length=True,
+                                   )["input_ids"] for k in
+                      concatenated_text.keys()}
+
+    result = {
+        "input_ids": []
+    }
+    for k, t in tokenized_text.items():
+        result["input_ids"].extend(
+            [t[i: i + block_size] for i in range(0, len(t) - block_size, block_size)])
+
+    result["labels"] = result["input_ids"].copy()
+    return result
+
+
+def get_dataset (dataset_dict, path_list, tokenizer, total_samples=500,
                 input_max_length=32, target_max_length=128,
                 type_training=TypeTraining.TEACHER, type_dataset="train"):
     dataset_name, bl_size = dataset_dict.dataset_name, dataset_dict.block_size
@@ -94,19 +136,23 @@ def get_dataset(dataset_dict, path_list, tokenizer, total_samples=500,
         train_path = path_list['train']
         train_dataset = TextDataset(tokenizer=tokenizer, file_path=train_path,
                                     block_size=bl_size)
-    if dataset_name == 'part_data':
+    elif dataset_name in {'part_data', 'made_data'}:
         INPUT_MAX_LENGTH = input_max_length
         TARGET_MAX_LENGTH = target_max_length
-        print(INPUT_MAX_LENGTH, TARGET_MAX_LENGTH, total_samples)
 
         fun_process_data = functools.partial(preprocess_data,
                                              tokenizer=tokenizer,
                                              input_max_length=INPUT_MAX_LENGTH,
-                                             target_max_length=TARGET_MAX_LENGTH)
+                                             target_max_length=TARGET_MAX_LENGTH,
+                                             mode = dataset_name)
         # TODO: Загружать исключительно нужную часть
-        dataset = load_dataset('json', data_files={'train': [train_path],
-                                                   'test': [test_path],
-                                                   'validation': [val_path]})
+        
+        if dataset_name == 'part_data':
+            dataset = load_dataset('json', data_files={'train': [train_path],
+                                                    'test': [test_path],
+                                                    'validation': [val_path]})
+        else:
+            dataset = load_dataset('csv', data_files={'train': [train_path]})
 
         train_dataset = dataset['train'].select(range(total_samples))
         if type_dataset == "validation":
@@ -127,14 +173,25 @@ def get_dataset(dataset_dict, path_list, tokenizer, total_samples=500,
                                               num_proc=32)
         elif type_training == TypeTraining.CLM:
 
-            fun_groups_texts = functools.partial(groups_texts, tokenizer=tokenizer,
+            if dataset_name == 'part_data':
+                fun_groups_texts = functools.partial(groups_texts, tokenizer=tokenizer,
                                                  block_size=bl_size)
-            train_dataset = train_dataset.map(fun_groups_texts, batched=True, num_proc=32,
+                train_dataset = train_dataset.map(fun_groups_texts, batched=True, num_proc=32,
                                               remove_columns=["passages", 'answers',
                                                               "query", "query_id",
                                                               "query_type",
                                                               "wellFormedAnswers"])
+            else:
+                fun_groups_texts = functools.partial(groups_texts_made, tokenizer=tokenizer,
+                                                 block_size=bl_size)
+                train_dataset = train_dataset.map(fun_groups_texts, batched=True, num_proc=32,
+                                              remove_columns=["label", 'query',
+                                                              "url", "title",
+                                                              "meta",
+                                                              "body",
+                                                              "qlinks"])
 
+        
     return train_dataset
 
 #
