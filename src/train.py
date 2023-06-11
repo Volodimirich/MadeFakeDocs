@@ -61,9 +61,8 @@ def training_pipeline(params: TrainingPipelineParams):
     print(device)
     # Создание даталодера (нарезает текст на оптимальные по длине куски)
     # TODO Решить, нужен ли нам collator, выбрать оптимальную подгрузку данных
-    # data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer,
-                                                    # mlm=params.dataset.mlm)
-    data_collator = DataCollatorForSeq2Seq(tokenizer)
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=params.dataset.mlm)
+    # data_collator = DataCollatorForSeq2Seq(tokenizer)
     logger.info('Loader finished')
     training_args = TrainingArguments(
         logging_strategy="epoch",
@@ -74,7 +73,8 @@ def training_pipeline(params: TrainingPipelineParams):
         per_device_eval_batch_size=params.train_params.per_device_eval_batch_size,  # batch size for evaluation
         warmup_steps=params.train_params.warmup_steps,  # number of warmup steps for learning rate scheduler
         gradient_accumulation_steps=params.train_params.gradient_accumulation_steps,  # to make "virtual" batch size larger
-        report_to="wandb"
+        report_to="wandb",
+        save_strategy="epoch"
     )
     optimizer = torch.optim.AdamW(model.parameters(), lr=params.train_params.lr)
     logger.info('Starting trained...')

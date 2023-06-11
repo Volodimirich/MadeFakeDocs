@@ -66,7 +66,8 @@ def evaluate(params: EvaluationPipelineParams):
                                target_max_length=params.model.target_max_length,
                                type_dataset="validation")
 
-    test_dataset.set_format(type="torch", columns=["input_ids", "passages"])
+    # test_dataset.set_format(type="torch", columns=["input_ids", "passages"])
+    test_dataset.set_format(type="torch", columns=["input_ids", "label"])
     eval_dataloader = DataLoader(test_dataset, batch_size=params.model.batch_size)
     number_batches_save = [random.randint(0, len(eval_dataloader) - 1) for _ in range(params.result.number_examples_batch)]
     examples_of_generation = []
