@@ -8,4 +8,6 @@ boto3==1.26.130
 torch
 gdown
 datasets
-docs-ranking-metrics==0.0.3
+docs-ranking-metrics==0.0.4
+bitsandbytes
+accelerate

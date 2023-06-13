@@ -1,24 +1,24 @@
 # Model
 model:
 # "t5-v1_1-small", "t5-v1_1-large", "gpt2"
-  model_name: "sberbank-ai/rugpt3large_based_on_gpt2"
-  tokenizer_name: "sberbank-ai/rugpt3large_based_on_gpt2"
-  local_path: './result_GPT3_Sber/checkpoint-2343'
+  model_name: "ai-forever/rugpt3large_based_on_gpt2"
+  tokenizer_name: "ai-forever/rugpt3large_based_on_gpt2"
+  local_path: './result_GPT3_Sber_sep_token/checkpoint-155'
   use_local: True
   path_save_model: ""
-  input_max_length: 32
-  target_max_length: 256
-  total_samples: 50
-  batch_size: 32
+  input_max_length: 512
+  target_max_length: 512
+  total_samples: 2
+  batch_size: 2
   predict_param:
     do_sample: True
     num_beams: 2
     temperature: 1.5
     top_p: 0.9
-    max_length: 300
+    max_length: 700
 
 result:
-  launch_description: "rugpt3large_based_on_gpt2"
+  launch_description: "rugpt3large_based_on_gpt2_pretrained_155"
   path_to_save_result: "./result"
   save_examples: True
   number_examples_batch: 3

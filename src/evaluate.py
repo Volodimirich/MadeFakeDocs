@@ -66,8 +66,13 @@ def evaluate(params: EvaluationPipelineParams):
                                target_max_length=params.model.target_max_length,
                                type_dataset="validation")
 
-    # test_dataset.set_format(type="torch", columns=["input_ids", "passages"])
-    test_dataset.set_format(type="torch", columns=["input_ids", "label"])
+    if params.dataset.dataset_name == ["part_data", "full_data"]:
+        test_dataset.set_format(type="torch", columns=["input_ids", "passages"])
+    elif params.dataset.dataset_name == "made_data":
+        test_dataset.set_format(type="torch", columns=["input_ids", "label", "body"])
+    else:
+        raise NotImplementedError()
+
     eval_dataloader = DataLoader(test_dataset, batch_size=params.model.batch_size)
     number_batches_save = [random.randint(0, len(eval_dataloader) - 1) for _ in range(params.result.number_examples_batch)]
     examples_of_generation = []
@@ -83,8 +88,15 @@ def evaluate(params: EvaluationPipelineParams):
 
         query = tokenizer.batch_decode(row["input_ids"], skip_special_tokens=True)
 
-        labels = row["passages"]["is_selected"].detach().cpu().tolist()
-        sentences = list(np.transpose(np.array(row["passages"]["passage_text"])))
+        if params.dataset.dataset_name == "part_data":
+            labels = row["passages"]["is_selected"].detach().cpu().tolist()
+            sentences = list(np.transpose(np.array(row["passages"]["passage_text"])))
+        elif params.dataset.dataset_name == "made_data":
+            labels = row["label"]
+            sentences = list(np.transpose(np.array(row["body"])))
+        else:
+            raise NotImplementedError()
+
         assert len(query) <= params.model.batch_size, "Неверный формат запросов!"
         assert len(query) == len(labels), "Размеры должны совпадать! Первое измерение BATCH_SIZE"
         assert len(query) == len(sentences), "Размеры должны совпадать! Первое измерение BATCH_SIZE"

@@ -38,9 +38,10 @@ def get_data(dataset_dict: dict):
         path_dict = {'train': os.path.join(data_path, 'filtred_df.csv'),
                      'test': None,
                      'val': os.path.join(data_path, 'filtred_df.csv')}
-        # path_dict = {'train': os.path.join(data_path, 'assessors_train_l_q_u_t_m_b_ql.tsv'),
-        #              'test':  os.path.join(data_path, 'assessors_test_l_q_u_t_m_b_ql.tsv'),
-        #              'val': None}
+    elif dataset_name == 'made_valid_data':
+        path_dict = {'train': os.path.join(data_path, 'val_grouped.csv'),
+                     'test': None,
+                     'val': os.path.join(data_path, 'val_grouped.csv')}
     return path_dict
 
 
@@ -66,13 +67,32 @@ def preprocess_data(examples, tokenizer, input_max_length, target_max_length, mo
         labels = tokenizer(text_arrays, max_length=target_max_length, truncation=True)
         model_inputs["labels"] = labels["input_ids"]
         model_inputs['pos_label'] = text_labels
-    elif mode == 'made_data':
+    elif mode == 'made_valid_data':
+        model_inputs = tokenizer(text=examples['query'],
+                                 max_length=input_max_length,
+                                 truncation=True, padding="max_length")
+        text_arrays = [''.join(x["passage_text"]) for x in examples["passages"]]
+        text_labels = [x["is_selected"] for x in examples["passages"]]
+        labels = tokenizer(text_arrays, max_length=target_max_length, truncation=True)
+        model_inputs["labels"] = labels["input_ids"]
+        model_inputs['pos_label'] = text_labels
+        #
+        # model_inputs = tokenizer(text=examples['query'],
+        #                          max_length=input_max_length,
+        #                          truncation=True, padding="max_length")
+        # labels = tokenizer(examples['body'], max_length=target_max_length, truncation=True)
+        # model_inputs["labels"] = labels["input_ids"]
+        # model_inputs['pos_label'] = examples['label']
+    elif mode == "made_data":
+        for tt in range(len(examples['query'])):
+            examples['query'][tt] += " " + tokenizer.eos_token
         model_inputs = tokenizer(text=examples['query'],
                                  max_length=input_max_length,
                                  truncation=True, padding="max_length")
         labels = tokenizer(examples['body'], max_length=target_max_length, truncation=True)
         model_inputs["labels"] = labels["input_ids"]
         model_inputs['pos_label'] = examples['label']
+
     else:
         raise NotImplementedError()
 
@@ -129,7 +149,7 @@ def groups_texts(examples, tokenizer, block_size):
     return result
 
 
-def groups_texts_made(examples, tokenizer, block_size):
+def groups_texts_made(examples, tokenizer, context_size, block_size):
     """
     Функция для группировки текста и нарезка его на блоки для задачи CLM
     """
@@ -142,12 +162,24 @@ def groups_texts_made(examples, tokenizer, block_size):
         concatenated_text[ind_example] += " " + cur_example + tokenizer.eos_token
 
     tokenized_text = {k: tokenizer(text=concatenated_text[k],
-                                   truncation=True,
+                                   # truncation=True,
                                    return_overflowing_tokens=True,
                                    return_length=True,
+                                   max_length=context_size,
+                                   padding="max_length"
                                    )["input_ids"] for k in
                       concatenated_text.keys()}
-
+    # tokenized_text = {}
+    # t = tokenizer.pad_token
+    # print(tokenizer.pad_token)
+    # for k in concatenated_text.keys():
+    #     tokenized_text[k] = tokenizer(text=concatenated_text[k],
+    #                                truncation=True,
+    #                                return_overflowing_tokens=True,
+    #                                return_length=True,
+    #                                max_length=context_size,
+    #                                padding="max_length"
+    #                                )["input_ids"]
     result = {
         "input_ids": []
     }
@@ -169,7 +201,7 @@ def get_dataset(dataset_dict, path_list, tokenizer, total_samples=500,
     if dataset_name == 'full_data':
         train_path = path_list['train']
         train_dataset = TextDataset(tokenizer=tokenizer, file_path=train_path, block_size=bl_size)
-    elif dataset_name in {'part_data', 'made_data'}:
+    elif dataset_name in {'part_data', 'made_data', "made_valid_data"}:
         INPUT_MAX_LENGTH = input_max_length
         TARGET_MAX_LENGTH = target_max_length
         NUM_PROC = 1
@@ -199,6 +231,9 @@ def get_dataset(dataset_dict, path_list, tokenizer, total_samples=500,
                 # fun_padding_passages = functools.partial(padding_passages, max_length=10)
                 # test_dataset = test_dataset.map(fun_padding_passages)
 
+            elif dataset_name == "made_valid_data":
+                test_dataset = test_dataset.map(fun_process_data, batched=True, load_from_cache_file=False,
+                                                num_proc=NUM_PROC, remove_columns=['query'])
             elif dataset_name == "made_data":
                 test_dataset = test_dataset.map(fun_process_data, batched=True, load_from_cache_file=False,
                                                 num_proc=NUM_PROC, remove_columns=['query',
@@ -224,7 +259,8 @@ def get_dataset(dataset_dict, path_list, tokenizer, total_samples=500,
                                                                   "query_type",
                                                                   "wellFormedAnswers"])
             else:
-                fun_groups_texts = functools.partial(groups_texts_made, tokenizer=tokenizer, block_size=bl_size)
+                fun_groups_texts = functools.partial(groups_texts_made, tokenizer=tokenizer,
+                                                     block_size=bl_size, context_size=INPUT_MAX_LENGTH)
                 train_dataset = train_dataset.map(fun_groups_texts, batched=True,
                                                   num_proc=NUM_PROC, load_from_cache_file=False,
                                                   remove_columns=["label", 'query',
