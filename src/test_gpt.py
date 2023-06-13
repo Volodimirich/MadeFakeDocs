@@ -1,3 +1,6 @@
+"""
+Данный модуль содержит пайплайн обучения GPT с помощью TextDataset
+"""
 import os
 
 import wandb
