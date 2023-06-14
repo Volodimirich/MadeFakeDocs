@@ -6,7 +6,7 @@ def get_tokenizer(tokenizer_name):
                           "ai-forever/rugpt3medium_based_on_gpt2"]:
         tokenizer = GPT2Tokenizer.from_pretrained(tokenizer_name)
         if tokenizer.pad_token is None:
-            # pass
+
             SPECIAL_TOKENS = {'bos_token': '<bos>', 'eos_token': '<eos>', 'pad_token': '<pad>', 'sep_token': '<sep>'}
             tokenizer.add_special_tokens(SPECIAL_TOKENS)
             # tokenizer.pad_token = tokenizer.eos_token

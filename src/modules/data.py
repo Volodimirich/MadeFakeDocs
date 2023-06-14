@@ -1,6 +1,7 @@
 import os
 import gdown
 import functools
+import torch
 from datasets import load_dataset
 from transformers import TextDataset
 
@@ -39,9 +40,9 @@ def get_data(dataset_dict: dict):
                      'test': None,
                      'val': os.path.join(data_path, 'filtred_df.csv')}
     elif dataset_name == 'made_valid_data':
-        path_dict = {'train': os.path.join(data_path, 'val_grouped.csv'),
+        path_dict = {'train': os.path.join(data_path, 'val.json'),
                      'test': None,
-                     'val': os.path.join(data_path, 'val_grouped.csv')}
+                     'val': os.path.join(data_path, 'val.json')}
     return path_dict
 
 
@@ -58,7 +59,7 @@ def preprocess_data(examples, tokenizer, input_max_length, target_max_length, mo
     :param mode:
     :return:
     """
-    if mode == 'part_data':
+    if mode in  ['part_data', 'made_valid_data']:
         model_inputs = tokenizer(text=examples['query'],
                                  max_length=input_max_length,
                                  truncation=True, padding="max_length")
@@ -67,25 +68,17 @@ def preprocess_data(examples, tokenizer, input_max_length, target_max_length, mo
         labels = tokenizer(text_arrays, max_length=target_max_length, truncation=True)
         model_inputs["labels"] = labels["input_ids"]
         model_inputs['pos_label'] = text_labels
-    elif mode == 'made_valid_data':
-        model_inputs = tokenizer(text=examples['query'],
-                                 max_length=input_max_length,
-                                 truncation=True, padding="max_length")
-        text_arrays = [''.join(x["passage_text"]) for x in examples["passages"]]
-        text_labels = [x["is_selected"] for x in examples["passages"]]
-        labels = tokenizer(text_arrays, max_length=target_max_length, truncation=True)
-        model_inputs["labels"] = labels["input_ids"]
-        model_inputs['pos_label'] = text_labels
-        #
-        # model_inputs = tokenizer(text=examples['query'],
-        #                          max_length=input_max_length,
-        #                          truncation=True, padding="max_length")
-        # labels = tokenizer(examples['body'], max_length=target_max_length, truncation=True)
-        # model_inputs["labels"] = labels["input_ids"]
-        # model_inputs['pos_label'] = examples['label']
+    # elif mode == 'made_valid_data':
+    #     model_inputs = tokenizer(text=examples['query'],
+    #                              max_length=input_max_length,
+    #                              truncation=True, padding="max_length")
+    #     text_arrays = [''.join(x["passage_text"]) for x in examples["passages"]]
+    #     text_labels = [x["is_selected"] for x in examples["passages"]]
+    #     labels = tokenizer(text_arrays, max_length=target_max_length, truncation=True)
+    #     model_inputs["labels"] = labels["input_ids"]
+    #     model_inputs['pos_label'] = text_labels
+
     elif mode == "made_data":
-        for tt in range(len(examples['query'])):
-            examples['query'][tt] += " " + tokenizer.eos_token
         model_inputs = tokenizer(text=examples['query'],
                                  max_length=input_max_length,
                                  truncation=True, padding="max_length")
@@ -99,30 +92,16 @@ def preprocess_data(examples, tokenizer, input_max_length, target_max_length, mo
     return model_inputs
 
 
-# def padding_passages(examples, max_length):
-#     # max_length = 10
-#     for cnt in range(max_length - len(examples["passages"]["passage_text"])):
-#         examples["passages"]["passage_text"].append('')
-#         examples["passages"]["is_selected"].append(0)
-#         examples["passages"]["url"].append("")
-#     return examples
+def collate_fn(batch):
+    inputs_ids, passages = [], []
+    #
+    for item in batch:
+        inputs_ids.append(item["input_ids"])
+        passages.append(item["passages"])
 
-
-# def collate_fn(batch):
-#     images, seqs, seq_lens, images_name = [], [], [], []
-#
-#     for item in batch:
-#         images.append(item["image"])
-#         images_name.append(item["img_name"])
-#         seq_lens.append(len(item["seqs"]))
-#         seqs.extend(item["seqs"])
-#
-#     images = torch.stack(images)
-#     seqs = torch.Tensor(seqs).int()
-#     seq_lens = torch.Tensor(seq_lens).int()
-#     batch = {"images": images, "seq": seqs, "seq_len": seq_lens,
-#              "img_name": images_name}
-#     return batch
+    in_ids = torch.stack(inputs_ids)
+    batch = {"input_ids": in_ids, "passages": passages}
+    return batch
 
 
 def groups_texts(examples, tokenizer, block_size):
@@ -216,6 +195,8 @@ def get_dataset(dataset_dict, path_list, tokenizer, total_samples=500,
             dataset = load_dataset('json', data_files={'train': [train_path],
                                                        'test': [test_path],
                                                        'validation': [val_path]})
+        elif dataset_name == "made_valid_data":
+            dataset = load_dataset('json', data_files={'validation': [val_path]})
         else:
             dataset = load_dataset('csv', data_files={'train': [train_path], "validation": [val_path]})
 
@@ -228,14 +209,12 @@ def get_dataset(dataset_dict, path_list, tokenizer, total_samples=500,
                                                                                    "query_id",
                                                                                    "query_type",
                                                                                    "wellFormedAnswers"])
-                # fun_padding_passages = functools.partial(padding_passages, max_length=10)
-                # test_dataset = test_dataset.map(fun_padding_passages)
 
             elif dataset_name == "made_valid_data":
-                test_dataset = test_dataset.map(fun_process_data, batched=True, load_from_cache_file=False,
+                test_dataset = test_dataset.map(fun_process_data, batched=True,
                                                 num_proc=NUM_PROC, remove_columns=['query'])
             elif dataset_name == "made_data":
-                test_dataset = test_dataset.map(fun_process_data, batched=True, load_from_cache_file=False,
+                test_dataset = test_dataset.map(fun_process_data, batched=True,
                                                 num_proc=NUM_PROC, remove_columns=['query',
                                                                                    "url",
                                                                                    "title",
@@ -262,7 +241,7 @@ def get_dataset(dataset_dict, path_list, tokenizer, total_samples=500,
                 fun_groups_texts = functools.partial(groups_texts_made, tokenizer=tokenizer,
                                                      block_size=bl_size, context_size=INPUT_MAX_LENGTH)
                 train_dataset = train_dataset.map(fun_groups_texts, batched=True,
-                                                  num_proc=NUM_PROC, load_from_cache_file=False,
+                                                  num_proc=NUM_PROC,
                                                   remove_columns=["label", 'query',
                                                                   "url", "title",
                                                                   "meta",

@@ -73,7 +73,7 @@ def training_pipeline(params: TrainingPipelineParams):
         per_device_eval_batch_size=params.train_params.per_device_eval_batch_size,  # batch size for evaluation
         warmup_steps=params.train_params.warmup_steps,  # number of warmup steps for learning rate scheduler
         gradient_accumulation_steps=params.train_params.gradient_accumulation_steps,  # to make "virtual" batch size larger
-        report_to="wandb",
+        report_to=None,
         save_strategy="epoch",
         fp16=True
     )
