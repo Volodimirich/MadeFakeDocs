@@ -68,15 +68,6 @@ def preprocess_data(examples, tokenizer, input_max_length, target_max_length, mo
         labels = tokenizer(text_arrays, max_length=target_max_length, truncation=True)
         model_inputs["labels"] = labels["input_ids"]
         model_inputs['pos_label'] = text_labels
-    # elif mode == 'made_valid_data':
-    #     model_inputs = tokenizer(text=examples['query'],
-    #                              max_length=input_max_length,
-    #                              truncation=True, padding="max_length")
-    #     text_arrays = [''.join(x["passage_text"]) for x in examples["passages"]]
-    #     text_labels = [x["is_selected"] for x in examples["passages"]]
-    #     labels = tokenizer(text_arrays, max_length=target_max_length, truncation=True)
-    #     model_inputs["labels"] = labels["input_ids"]
-    #     model_inputs['pos_label'] = text_labels
 
     elif mode == "made_data":
         model_inputs = tokenizer(text=examples['query'],
@@ -148,17 +139,7 @@ def groups_texts_made(examples, tokenizer, context_size, block_size):
                                    padding="max_length"
                                    )["input_ids"] for k in
                       concatenated_text.keys()}
-    # tokenized_text = {}
-    # t = tokenizer.pad_token
-    # print(tokenizer.pad_token)
-    # for k in concatenated_text.keys():
-    #     tokenized_text[k] = tokenizer(text=concatenated_text[k],
-    #                                truncation=True,
-    #                                return_overflowing_tokens=True,
-    #                                return_length=True,
-    #                                max_length=context_size,
-    #                                padding="max_length"
-    #                                )["input_ids"]
+
     result = {
         "input_ids": []
     }
@@ -225,7 +206,7 @@ def get_dataset(dataset_dict, path_list, tokenizer, total_samples=500,
                 raise NotImplementedError()
             return test_dataset
 
-        train_dataset = dataset['train'].select(range(total_samples))
+        train_dataset = dataset['train'].select(range(min(total_samples, len(dataset['train']))))
         if type_training == TypeTraining.TEACHER:
             train_dataset = train_dataset.map(fun_process_data, batched=True, num_proc=NUM_PROC)
         elif type_training == TypeTraining.CLM:
@@ -251,5 +232,3 @@ def get_dataset(dataset_dict, path_list, tokenizer, total_samples=500,
         raise NotImplementedError()
 
     return train_dataset
-
-#
