@@ -1,3 +1,6 @@
+"""
+Данный модуль содержит общий пайплайн оценки для всех моделей
+"""
 import os
 import sys
 import hydra
@@ -6,22 +9,17 @@ import torch
 import json
 import shutil
 import logging
-# import pandas as pd
 from tqdm import tqdm
 import random
-import yaml
 from modules.data import get_data, get_dataset
 from modules.model import get_tokenizer, get_model
 from logger_config.config import LOGGING_CONFIG
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from src.enities.evaluation_pipeline_params import EvaluationPipelineParams
 from src.modules.data import collate_fn
 from transformers import DataCollatorForSeq2Seq
-# from src.metrics.ranking_metrics import RankingMetrics, LaBSE, Bm25
 from modules.engine import predict
-from modules.data import TypeTraining
 from torch.utils.data import DataLoader
-from docs_ranking_metrics import LaBSE, Bm25, RankingMetrics, USE, MsMarcoST,MsMarcoCE
+from docs_ranking_metrics import LaBSE, Bm25, RankingMetrics, USE, MsMarcoST, MsMarcoCE
 import datetime
 
 logging.config.dictConfig(LOGGING_CONFIG)
@@ -67,7 +65,8 @@ def evaluate(params: EvaluationPipelineParams):
     test_dataset.set_format(type="torch", columns=["input_ids", "passages"])
 
     eval_dataloader = DataLoader(test_dataset, batch_size=params.model.batch_size, collate_fn=collate_fn)
-    number_batches_save = [random.randint(0, len(eval_dataloader) - 1) for _ in range(params.result.number_examples_batch)]
+    number_batches_save = [random.randint(0, len(eval_dataloader) - 1) for _ in
+                           range(params.result.number_examples_batch)]
     examples_of_generation = []
 
     metrics = [LaBSE(), Bm25()]
@@ -127,6 +126,7 @@ def evaluate(params: EvaluationPipelineParams):
         logger.info(f"Save examples: {path_to_save_examples}")
         with open(path_to_save_examples, 'w', encoding="utf-8") as f:
             json.dump(examples_of_generation, f, ensure_ascii=False)
+
 
 if __name__ == "__main__":
     evaluate()

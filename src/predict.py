@@ -68,7 +68,6 @@ def predict_pipeline(params: EvaluationPipelineParams):
 
     test_dataset.set_format(type="torch", columns=["input_ids"])
     eval_dataloader = DataLoader(test_dataset, batch_size=params.model.batch_size)
-    # number_batches_save = [random.randint(0, len(eval_dataloader) - 1) for _ in range(params.result.number_examples_batch)]
     examples_of_generation = []
 
     logger.info(f'The dataset is loaded!')

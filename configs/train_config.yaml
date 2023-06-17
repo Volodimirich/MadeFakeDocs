@@ -4,15 +4,15 @@ basic:
 
 # Model
 model:
-# "t5-v1_1-small", "t5-v1_1-large", "gpt2" "ai-forever/rugpt3large_based_on_gpt2"
-  model_name: "ai-forever/rugpt3large_based_on_gpt2"
-  tokenizer_name: "ai-forever/rugpt3large_based_on_gpt2"
-  local_path: './result_gpt3large'
+# "t5-v1_1-small", "t5-v1_1-large", "ai-forever/FRED-T5-1.7B", "gpt2" "ai-forever/rugpt3large_based_on_gpt2"
+  model_name: "ai-forever/FRED-T5-large"
+  tokenizer_name: "ai-forever/FRED-T5-large"
+  local_path: './result_t5_test'
   use_local: False
   path_save_model: str
-  input_max_length: 256
-  target_max_length: 13
-  total_samples: 2
+  input_max_length: 32
+  target_max_length: 32
+  total_samples: 500
   type_of_training: "CLM"
 
 
@@ -23,7 +23,7 @@ dataset:
   # full_data - с сайта, part_data - размеченная с hugging face
   # made_data
   dataset_name: "made_data"
-  block_size: 512
+  block_size: 1024
   mlm: False
   path_to_save_txt: "./data/gpt_training/txt_training.txt"
   name_txt_file: "txt_training.txt"
@@ -39,11 +39,11 @@ dataset:
 # TrainingArguments
 train_params:
   pre_trained: bool
-  output_dir: "./result_GPT3_Sber_test"
+  output_dir: "./result_t5_test"
   overwrite_output_dir: True
   num_train_epochs: 40  # number of training epochs
-  per_device_train_batch_size: 2  # batch size for training
-  per_device_eval_batch_size: 2  # batch size for evaluation
+  per_device_train_batch_size: 1  # batch size for training
+  per_device_eval_batch_size: 1  # batch size for evaluation
   warmup_steps: 10  # number of warmup steps for learning rate scheduler
   gradient_accumulation_steps: 16   # to make "virtual" batch size larger
 

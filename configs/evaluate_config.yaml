@@ -1,13 +1,13 @@
 # Model
 model:
 # "t5-v1_1-small", "t5-v1_1-large", "gpt2"
-  model_name: "sberbank-ai/rugpt3large_based_on_gpt2"
-  tokenizer_name: "sberbank-ai/rugpt3large_based_on_gpt2"
-  local_path: './result_GPT3_Sber/checkpoint-3180'
+  model_name: "ai-forever/rugpt3large_based_on_gpt2"
+  tokenizer_name: "ai-forever/rugpt3large_based_on_gpt2"
+  local_path: './result_GPT3_Sber_1024_context_40_epoch/checkpoint-160'
   use_local: True
   path_save_model: ""
-  input_max_length: 32
-  target_max_length: 32
+  input_max_length: 256
+  target_max_length: 512
   total_samples: 500
   batch_size: 8
   predict_param:
@@ -15,10 +15,10 @@ model:
     num_beams: 2
     temperature: 1.5
     top_p: 0.9
-    max_length: 150
+    max_length: 700
 
 result:
-  launch_description: "rugpt3large_based_on_gpt2"
+  launch_description: "./result_textdataset/rugpt3large_based_on_gpt2_checkpoint-160"
   path_to_save_result: "./result"
   save_examples: True
   number_examples_batch: 3
@@ -29,8 +29,8 @@ dataset:
   # file_path: 'D:\\projects_andrey\\datasets_made\\fulldocs_txt.txt'
   save_dir: 'data'
   # full_data - с сайта, part_data - размеченная с hugging face
-  dataset_name: made_data
-  block_size: 128
+  dataset_name: "made_valid_data"
+  block_size: 700
   mlm: False
 
   # Gdown помойка, надеюсь они починять folder_download

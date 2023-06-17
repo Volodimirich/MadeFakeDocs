@@ -1,3 +1,7 @@
+"""
+Данный модуль содержит общий пайплайн обучения для всех моделей
+"""
+
 import os
 
 import wandb
@@ -11,19 +15,16 @@ import torch
 import logging
 
 from transformers import DataCollatorForLanguageModeling
-from transformers import Trainer, TrainingArguments
+from transformers import TrainingArguments
 from modules.engine import (
     train
 )
-from transformers import (T5Tokenizer, T5ForConditionalGeneration, AutoTokenizer, AutoModel, 
-                          DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer, EarlyStoppingCallback)
+from transformers import DataCollatorForSeq2Seq
 
 from enities.training_pipeline_params import TrainingPipelineParams
 from modules.data import TypeTraining
-# from ..configs.logger_config import LOGGING_CONFIG
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger()
@@ -35,34 +36,35 @@ def training_pipeline(params: TrainingPipelineParams):
     os.environ["WANDB_ENTITY"] = "madefakedocs"
     os.environ['WANDB_PROJECT'] = params.basic.wandb_project
     logger.info(f"Name of the logging project wandb: {params.basic.wandb_project}")
-    
+
     logger.info(f"Currently used device: {device}")
     dataset_path_dict = get_data(params.dataset)
 
     model_info = f'Pretrained {params.model.model_name}' if not params.model.use_local \
         else f'Local {params.model.model_name} from {params.model.local_path}'
     logger.info(f'Initializing the model: {model_info}')
-    
+
     tokenizer = get_tokenizer(params.model.tokenizer_name)
     logger.info(f'Get tokenizer {params.model.tokenizer_name}')
 
     model = get_model(params.model.model_name, device, params.model.local_path, params.model.use_local)
-    # New
     model.resize_token_embeddings(len(tokenizer))
 
     logger.info('Model created')
 
     # Создание датасета
-    train_dataset = get_dataset(params.dataset, dataset_path_dict, tokenizer, 
-                                total_samples=params.model.total_samples, 
+    train_dataset = get_dataset(params.dataset, dataset_path_dict, tokenizer,
+                                total_samples=params.model.total_samples,
                                 input_max_length=params.model.input_max_length,
                                 target_max_length=params.model.target_max_length,
                                 type_training=TypeTraining.CLM)
     print(device)
-    # Создание даталодера (нарезает текст на оптимальные по длине куски)
-    # TODO Решить, нужен ли нам collator, выбрать оптимальную подгрузку данных
-    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=params.dataset.mlm)
-    # data_collator = DataCollatorForSeq2Seq(tokenizer)
+
+    if params.model.model_name.find("gpt") != -1:
+        data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=params.dataset.mlm)
+    else:
+        data_collator = DataCollatorForSeq2Seq(tokenizer)
+
     logger.info('Loader finished')
     training_args = TrainingArguments(
         logging_strategy="epoch",
@@ -72,7 +74,8 @@ def training_pipeline(params: TrainingPipelineParams):
         per_device_train_batch_size=params.train_params.per_device_train_batch_size,  # batch size for training
         per_device_eval_batch_size=params.train_params.per_device_eval_batch_size,  # batch size for evaluation
         warmup_steps=params.train_params.warmup_steps,  # number of warmup steps for learning rate scheduler
-        gradient_accumulation_steps=params.train_params.gradient_accumulation_steps,  # to make "virtual" batch size larger
+        gradient_accumulation_steps=params.train_params.gradient_accumulation_steps,
+        # to make "virtual" batch size larger
         report_to=None,
         save_strategy="epoch",
         fp16=True
@@ -85,4 +88,3 @@ def training_pipeline(params: TrainingPipelineParams):
 
 if __name__ == "__main__":
     training_pipeline()
-

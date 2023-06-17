@@ -3,7 +3,7 @@ model:
 # "t5-v1_1-small", "t5-v1_1-large", "gpt2"
   model_name: "ai-forever/rugpt3large_based_on_gpt2"
   tokenizer_name: "ai-forever/rugpt3large_based_on_gpt2"
-  local_path: './result_GPT3_Sber_sep_token/checkpoint-155'
+  local_path: './result_GPT3_Sber_1024_context_40_epoch'
   use_local: True
   path_save_model: ""
   input_max_length: 512
@@ -15,10 +15,10 @@ model:
     num_beams: 2
     temperature: 1.5
     top_p: 0.9
-    max_length: 700
+    max_length: 350
 
 result:
-  launch_description: "rugpt3large_based_on_gpt2_pretrained_155"
+  launch_description: "rugpt3large_based_on_gpt2_pretrained_all_checkpoints"
   path_to_save_result: "./result"
   save_examples: True
   number_examples_batch: 3
@@ -29,7 +29,7 @@ dataset:
   # file_path: 'D:\\projects_andrey\\datasets_made\\fulldocs_txt.txt'
   save_dir: 'data'
   # full_data - с сайта, part_data - размеченная с hugging face
-  dataset_name: "made_data"
+  dataset_name: "made_valid_data"
   block_size: 128
   mlm: False
 
