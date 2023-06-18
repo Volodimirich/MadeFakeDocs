@@ -63,6 +63,7 @@ def predict_pipeline(params: EvaluationPipelineParams):
                                total_samples=params.model.total_samples,
                                input_max_length=params.model.input_max_length,
                                target_max_length=params.model.target_max_length,
+                               model_name=params.model.model_name,
                                type_training=TypeTraining.CLM,
                                type_dataset="validation")
 

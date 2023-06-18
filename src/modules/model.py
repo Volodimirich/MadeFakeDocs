@@ -17,7 +17,7 @@ def get_tokenizer(tokenizer_name):
     elif tokenizer_name in {'t5-v1_1-large', 't5-v1_1-small'}:
         return T5Tokenizer.from_pretrained(tokenizer_name)
     else:
-        raise NotImplementedError
+        raise NotImplementedError(f"This tokenizer is not supported!")
 
 
 def get_model(model_name, device, local_path='', is_local=False):
@@ -31,4 +31,4 @@ def get_model(model_name, device, local_path='', is_local=False):
     elif model_name in {'t5-v1_1-large', 't5-v1_1-small'}:
         return T5ForConditionalGeneration.from_pretrained(f"google/{model_name}").to(device)
     else:
-        raise NotImplementedError
+        raise NotImplementedError(f"This model is not supported!")

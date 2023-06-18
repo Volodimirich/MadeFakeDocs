@@ -1,12 +1,12 @@
 import torch
-from transformers import Trainer, TrainingArguments
+from transformers import Trainer, TrainingArguments, Seq2SeqTrainer
 
 
 def evaluate(model, tokenizer, device):
     pass
 
 
-def train(model, data_collator, train_dataset, training_args, optimizer, params):
+def train(model, data_collator, train_dataset, training_args, tokenizer, optimizer, params):
     '''
     Функция для обучения
 
@@ -17,6 +17,8 @@ def train(model, data_collator, train_dataset, training_args, optimizer, params)
     data_collator: ``
     train_dataset: ``
     training_args: ``
+    tokenizer: ``
+        Токенизатор
     optimizer: ``
         Оптимизатор
     training_config: ``
@@ -26,13 +28,22 @@ def train(model, data_collator, train_dataset, training_args, optimizer, params)
     `list`
         Результаты тренировки модели
     '''
-    trainer = Trainer(
-        model=model,
-        args=training_args,
-        data_collator=data_collator,
-        train_dataset=train_dataset,
-        optimizers=(optimizer, None)
-    )
+    if params.model.model_name.lower().find("gpt2") != -1:
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            data_collator=data_collator,
+            train_dataset=train_dataset,
+            optimizers=(optimizer, None)
+        )
+    else:
+        trainer = Seq2SeqTrainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_dataset,
+            data_collator=data_collator,
+            tokenizer=tokenizer,
+        )
 
     training_results = trainer.train()
     # trainer.save_model(params.path_save_model)

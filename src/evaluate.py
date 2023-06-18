@@ -44,7 +44,6 @@ def evaluate(params: EvaluationPipelineParams):
     logger.info(f"Currently used device: {device}")
     dataset_path_dict = get_data(params.dataset)
     logger.info(f"The folder where the result is saved: {folder_result_name}")
-    # TODO: СОхранить запускаемые параметры
 
     model_info = f'Pretrained {params.model.model_name}' if not params.model.use_local \
         else f'Local {params.model.model_name} from {params.model.local_path}'
@@ -60,6 +59,7 @@ def evaluate(params: EvaluationPipelineParams):
                                total_samples=params.model.total_samples,
                                input_max_length=params.model.input_max_length,
                                target_max_length=params.model.target_max_length,
+                               model_name=params.model.model_name,
                                type_dataset="validation")
 
     test_dataset.set_format(type="torch", columns=["input_ids", "passages"])

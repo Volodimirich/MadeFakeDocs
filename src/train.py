@@ -19,7 +19,7 @@ from transformers import TrainingArguments
 from modules.engine import (
     train
 )
-from transformers import DataCollatorForSeq2Seq
+from transformers import DataCollatorForSeq2Seq, Seq2SeqTrainingArguments
 
 from enities.training_pipeline_params import TrainingPipelineParams
 from modules.data import TypeTraining
@@ -57,32 +57,51 @@ def training_pipeline(params: TrainingPipelineParams):
                                 total_samples=params.model.total_samples,
                                 input_max_length=params.model.input_max_length,
                                 target_max_length=params.model.target_max_length,
+                                model_name=params.model.model_name,
                                 type_training=TypeTraining.CLM)
     print(device)
 
-    if params.model.model_name.find("gpt") != -1:
+    if params.model.model_name.lower().find("gpt") != -1:
         data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=params.dataset.mlm)
+    elif params.model.model_name.lower().find("t5") != -1:
+        data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, label_pad_token_id=-100)
     else:
-        data_collator = DataCollatorForSeq2Seq(tokenizer)
+        raise NotImplementedError(f"This model is not supported!")
 
     logger.info('Loader finished')
-    training_args = TrainingArguments(
-        logging_strategy="epoch",
-        output_dir=params.train_params.output_dir,  # The output directory
-        overwrite_output_dir=params.train_params.overwrite_output_dir,  # Overwrite the content of the output dir
-        num_train_epochs=params.train_params.num_train_epochs,  # number of training epochs
-        per_device_train_batch_size=params.train_params.per_device_train_batch_size,  # batch size for training
-        per_device_eval_batch_size=params.train_params.per_device_eval_batch_size,  # batch size for evaluation
-        warmup_steps=params.train_params.warmup_steps,  # number of warmup steps for learning rate scheduler
-        gradient_accumulation_steps=params.train_params.gradient_accumulation_steps,
-        # to make "virtual" batch size larger
-        report_to=None,
-        save_strategy="epoch",
-        fp16=True
-    )
-    optimizer = torch.optim.AdamW(model.parameters(), lr=params.train_params.lr)
+    if params.model.model_name.lower().find("gpt") != -1:
+        training_args = TrainingArguments(
+            logging_strategy="epoch",
+            output_dir=params.train_params.output_dir,  # The output directory
+            overwrite_output_dir=params.train_params.overwrite_output_dir,  # Overwrite the content of the output dir
+            num_train_epochs=params.train_params.num_train_epochs,  # number of training epochs
+            per_device_train_batch_size=params.train_params.per_device_train_batch_size,  # batch size for training
+            per_device_eval_batch_size=params.train_params.per_device_eval_batch_size,  # batch size for evaluation
+            warmup_steps=params.train_params.warmup_steps,  # number of warmup steps for learning rate scheduler
+            gradient_accumulation_steps=params.train_params.gradient_accumulation_steps,
+            # to make "virtual" batch size larger
+            report_to=None,
+            save_strategy="epoch",
+            fp16=True
+        )
+        optimizer = torch.optim.AdamW(model.parameters(), lr=params.train_params.lr)
+    elif params.model.model_name.lower().find("t5") != -1:
+        training_args = Seq2SeqTrainingArguments(
+            logging_strategy="epoch",
+            save_strategy="epoch",
+            learning_rate=params.train_params.lr,
+            per_device_train_batch_size=params.train_params.per_device_train_batch_size,
+            optim='adafactor',
+            num_train_epochs=params.train_params.num_train_epochs,
+            bf16=True,
+            report_to="wandb",
+            output_dir=params.train_params.output_dir,
+            run_name='FRED-T5-1.7B',
+        )
+        optimizer = torch.optim.AdamW(model.parameters(), lr=params.train_params.lr)
+
     logger.info('Starting trained...')
-    train(model, data_collator, train_dataset, training_args, optimizer, params)
+    train(model, data_collator, train_dataset, training_args, tokenizer, optimizer, params)
     logger.info('The training is completed!')
 
 
