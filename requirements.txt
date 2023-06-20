@@ -9,3 +9,4 @@ torch
 gdown
 datasets
 docs-ranking-metrics==0.0.3
+telebot
