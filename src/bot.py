@@ -88,7 +88,9 @@ def handle_model_choice(call):
     chat_id = call.message.chat.id
     init_user(chat_id)
     model = call.data.split('_')[1]
-    model_matcher = {'gpt2': 'gpt2', 'sber' :'sberbank-ai/rugpt3large_based_on_gpt2',
+    model_matcher = {'gpt2': 'gpt2', 'sber-large' :'ai-forever/rugpt3large_based_on_gpt2',
+                     'sber-medium': 'ai-forever/rugpt3medium_based_on_gpt2', 
+                     'fred': "ai-forever/FRED-T5-large",
                      't5-small': 'flan-t5-small', 't5-big': 'flan-t5-large'}
 
 
@@ -160,12 +162,18 @@ def get_model_keyboard():
 
     # Создание кнопок для модели
     button_gpt2 = types.InlineKeyboardButton('gpt2', callback_data='model_gpt2')
-    button_t5_pretrained = types.InlineKeyboardButton('sber', callback_data='model_sber')
+    button_fred = types.InlineKeyboardButton('fred', callback_data='model_fred')
+    
+    button_t5_rugpt_big = types.InlineKeyboardButton('rugpt_large', callback_data='model_sber-large')
+    button_t5_rugpt_mid = types.InlineKeyboardButton('rugpt_medium', callback_data='model_sber-medium')
+
     button_t5_small = types.InlineKeyboardButton('t5_small', callback_data='model_t5-small')
     button_t5_big = types.InlineKeyboardButton('t5_big', callback_data='model_t5-big')
     
+    
     # Добавление кнопок на клавиатуру
-    keyboard.add(button_gpt2, button_t5_pretrained, button_t5_small, button_t5_big)
+    keyboard.add(button_gpt2, button_fred, button_t5_rugpt_mid, button_t5_rugpt_big, 
+                 button_t5_small, button_t5_big)
 
     return keyboard
 

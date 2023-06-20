@@ -1,3 +1,6 @@
+"""
+Данный модуль содержит общий пайплайн оценки для всех моделей
+"""
 import os
 import sys
 import hydra
@@ -6,24 +9,17 @@ import torch
 import json
 import shutil
 import logging
-# import pandas as pd
 from tqdm import tqdm
 import random
-import yaml
-# from pathlib import Path
-# from datetime import datetime
-# from datasets import load_dataset
 from modules.data import get_data, get_dataset
 from modules.model import get_tokenizer, get_model
 from logger_config.config import LOGGING_CONFIG
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from src.enities.evaluation_pipeline_params import EvaluationPipelineParams
+from src.modules.data import collate_fn
 from transformers import DataCollatorForSeq2Seq
-# from src.metrics.ranking_metrics import RankingMetrics, LaBSE, Bm25
 from modules.engine import predict
-from modules.data import TypeTraining
 from torch.utils.data import DataLoader
-from docs_ranking_metrics import LaBSE, Bm25, RankingMetrics
+from docs_ranking_metrics import LaBSE, Bm25, RankingMetrics, USE, MsMarcoST, MsMarcoCE
 import datetime
 
 logging.config.dictConfig(LOGGING_CONFIG)
@@ -48,7 +44,6 @@ def evaluate(params: EvaluationPipelineParams):
     logger.info(f"Currently used device: {device}")
     dataset_path_dict = get_data(params.dataset)
     logger.info(f"The folder where the result is saved: {folder_result_name}")
-    # TODO: СОхранить запускаемые параметры
 
     model_info = f'Pretrained {params.model.model_name}' if not params.model.use_local \
         else f'Local {params.model.model_name} from {params.model.local_path}'
@@ -64,16 +59,18 @@ def evaluate(params: EvaluationPipelineParams):
                                total_samples=params.model.total_samples,
                                input_max_length=params.model.input_max_length,
                                target_max_length=params.model.target_max_length,
+                               model_name=params.model.model_name,
                                type_dataset="validation")
 
-    # test_dataset.set_format(type="torch", columns=["input_ids", "passages"])
-    test_dataset.set_format(type="torch", columns=["input_ids", "label"])
-    eval_dataloader = DataLoader(test_dataset, batch_size=params.model.batch_size)
-    number_batches_save = [random.randint(0, len(eval_dataloader) - 1) for _ in range(params.result.number_examples_batch)]
+    test_dataset.set_format(type="torch", columns=["input_ids", "passages"])
+
+    eval_dataloader = DataLoader(test_dataset, batch_size=params.model.batch_size, collate_fn=collate_fn)
+    number_batches_save = [random.randint(0, len(eval_dataloader) - 1) for _ in
+                           range(params.result.number_examples_batch)]
     examples_of_generation = []
 
     metrics = [LaBSE(), Bm25()]
-    rank_metrics = RankingMetrics(metrics)
+    rank_metrics = RankingMetrics(metrics, [2, 3, 4])
 
     logger.info(f'The dataset is loaded!')
     for ind_batch, row in tqdm(enumerate(eval_dataloader),
@@ -83,14 +80,14 @@ def evaluate(params: EvaluationPipelineParams):
 
         query = tokenizer.batch_decode(row["input_ids"], skip_special_tokens=True)
 
-        labels = row["passages"]["is_selected"].detach().cpu().tolist()
-        sentences = list(np.transpose(np.array(row["passages"]["passage_text"])))
+        labels = [row["passages"][ind]["is_selected"].detach().cpu().tolist() for ind in range(len(row["passages"]))]
+        sentences = [row["passages"][ind]["passage_text"] for ind in range(len(row["passages"]))]
+
         assert len(query) <= params.model.batch_size, "Неверный формат запросов!"
         assert len(query) == len(labels), "Размеры должны совпадать! Первое измерение BATCH_SIZE"
         assert len(query) == len(sentences), "Размеры должны совпадать! Первое измерение BATCH_SIZE"
 
         generated_text = predict(row["input_ids"], model, tokenizer, device, params.model.predict_param)
-        # print(f"Query: {query}\n Generated Text: {generated_text[0]}")
 
         for ind in range(len(query)):
             updated_sequence = list(sentences[ind])
@@ -108,8 +105,7 @@ def evaluate(params: EvaluationPipelineParams):
 
             if params.result.save_examples and ind_batch in number_batches_save:
                 examples = {
-                    "passage_text": updated_sequence[:-1],
-                    "is_selected": updated_labels[:-1],
+                    "query": query[ind],
                     "generated_text": result_text
                 }
                 examples_of_generation.append(examples)
@@ -128,8 +124,9 @@ def evaluate(params: EvaluationPipelineParams):
     if params.result.save_examples:
         path_to_save_examples = os.path.join(folder_result_name, "Examples.json")
         logger.info(f"Save examples: {path_to_save_examples}")
-        with open(path_to_save_examples, 'w') as f:
-            json.dump(examples_of_generation, f)
+        with open(path_to_save_examples, 'w', encoding="utf-8") as f:
+            json.dump(examples_of_generation, f, ensure_ascii=False)
+
 
 if __name__ == "__main__":
     evaluate()
