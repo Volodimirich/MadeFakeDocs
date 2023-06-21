@@ -1,11 +1,11 @@
-import os
 import sys
 import argparse
 # import logging.config
 import telebot
+import gdown
 import torch
 
-from modules.model import get_tokenizer, get_model
+from modules.model import get_tokenizer, get_model, get_fred
 from modules.engine import predict
 from telebot import types
 
@@ -20,13 +20,17 @@ user_settings = {}
 # logger.info("Bot loaded, token = %s", os.environ['TBOT_TOKEN'])
 
 
-
 def get_result(message, chat_id):
     device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
     model_name = user_settings[chat_id]['model']
     words = user_settings[chat_id]['word_count']
-
-    model = get_model(model_name, device, local_path, False)
+    if model_name == 'ai-forever/rugpt3large_based_on_gpt2':
+        model = get_model(model_name, device, 'checkpoints/checkpoint-135', True)
+    elif model_name == 'ai-forever/FRED-T5-large':
+        model_folder = 'checkpoint/fred'
+        return get_fred(message, device, model_folder)
+    else:
+        model = get_model(model_name, device, local_path, False)        
     tokenizer = get_tokenizer(model_name)
     model.eval()
     model.to(device)
@@ -161,23 +165,20 @@ def get_model_keyboard():
     keyboard = types.InlineKeyboardMarkup(row_width=2)
 
     # Создание кнопок для модели
-    button_gpt2 = types.InlineKeyboardButton('gpt2', callback_data='model_gpt2')
+    button_gpt2 = types.InlineKeyboardButton('gpt2 (eng only)', callback_data='model_gpt2')
     button_fred = types.InlineKeyboardButton('fred', callback_data='model_fred')
     
     button_t5_rugpt_big = types.InlineKeyboardButton('rugpt_large', callback_data='model_sber-large')
-    button_t5_rugpt_mid = types.InlineKeyboardButton('rugpt_medium', callback_data='model_sber-medium')
+    button_t5_rugpt_mid = types.InlineKeyboardButton('rugpt_medium (pretrained)', callback_data='model_sber-medium')
 
-    button_t5_small = types.InlineKeyboardButton('t5_small', callback_data='model_t5-small')
-    button_t5_big = types.InlineKeyboardButton('t5_big', callback_data='model_t5-big')
+    # button_t5_small = types.InlineKeyboardButton('t5_small', callback_data='model_t5-small')
+    # button_t5_big = types.InlineKeyboardButton('t5_big', callback_data='model_t5-big')
     
     
     # Добавление кнопок на клавиатуру
-    keyboard.add(button_gpt2, button_fred, button_t5_rugpt_mid, button_t5_rugpt_big, 
-                 button_t5_small, button_t5_big)
+    keyboard.add(button_gpt2, button_fred, button_t5_rugpt_mid, button_t5_rugpt_big)
 
     return keyboard
-
-
 
 
 if __name__ == '__main__':

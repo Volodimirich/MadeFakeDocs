@@ -60,6 +60,42 @@ python src/bot.py
 
 ## Команды бота
 ```
-\hello - Get hello message
-\settings - Bot setup parameters
+/hello - Get hello message
+/settings - Bot setup parameters
+Для выполнения запроса требуется отправить боту сообщение. Он обработает его с введенными параметрами.
+```
+
+## Архитектура проекта
+```
+.
+├── checkpoints - directory with model checkpoints
+├── configs - config directory
+│   ├── evaluate_config.yaml
+│   ├── predict_config.yaml
+│   └── train_config.yaml
+├── data - directory with data for training
+├── notebooks - research notebooks
+│   ├── download_upload.ipynb - dataset researching
+│   └── t5_small.ipynb - t5 jupyter notebook
+├── README.md - It's me, Mario.
+├── requirements.txt
+├── src 
+│   ├── bot.py - telegram bot
+│   ├── enities - dataclass entities
+│   │   ├── evaluation_pipeline_params.py
+│   │   ├── predict_params.py
+│   │   └── training_pipeline_params.py
+│   ├── evaluate.py - evaluate config
+│   ├── generating_model_responses.py - answer generation for some models
+│   ├── helpers.py - s3 loader 
+│   ├── logger_config
+│   │   ├── config.py - logger config file
+│   ├── modules 
+│   │   ├── data.py - data module
+│   │   ├── engine.py - train-predict module
+│   │   ├── model.py - tokenizer and model load module
+│   ├── predict.py - predict script
+│   ├── train_gpt_clm.py - gpt test launcher
+│   └── train.py - model train launcher
+└── wandb - dir with log data
 ```
