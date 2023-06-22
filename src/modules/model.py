@@ -26,7 +26,8 @@ def get_model(model_name, device, local_path='', is_local=False):
         model = local_path if is_local else model_name
         return GPT2LMHeadModel.from_pretrained(model).to(device)
     elif model_name in ["ai-forever/FRED-T5-1.7B", "ai-forever/FRED-T5-large"]:
-        model = T5ForConditionalGeneration.from_pretrained(model_name)
+        model = local_path if is_local else model_name
+        model = T5ForConditionalGeneration.from_pretrained(model)
         return model.to(device)
     elif model_name in {'t5-v1_1-large', 't5-v1_1-small'}:
         return T5ForConditionalGeneration.from_pretrained(f"google/{model_name}").to(device)

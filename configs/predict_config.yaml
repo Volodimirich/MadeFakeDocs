@@ -1,33 +1,34 @@
 # Model
 model:
 # "t5-v1_1-small", "t5-v1_1-large", "gpt2"
-  model_name: "ai-forever/rugpt3large_based_on_gpt2"
-  tokenizer_name: "ai-forever/rugpt3large_based_on_gpt2"
-  local_path: './result_GPT3_Sber_1024_context_40_epoch'
+  model_name: "ai-forever/FRED-T5-1.7B"
+  tokenizer_name: "ai-forever/FRED-T5-1.7B"
+  local_path: '/home/d.maximov/data/models/t5_1.7B/checkpoint-4880'
   use_local: True
   path_save_model: ""
-  input_max_length: 512
-  target_max_length: 512
-  total_samples: 2
+  input_max_length: 20
+  target_max_length: 750
+  total_samples: 1000000
   batch_size: 2
   predict_param:
-    do_sample: True
+    do_sample: False
     num_beams: 2
-    temperature: 1.5
-    top_p: 0.9
-    max_length: 350
+    temperature: 1
+    top_p: Null
+    top_k: Null
+    max_length: 750
 
 result:
-  launch_description: "rugpt3large_based_on_gpt2_pretrained_all_checkpoints"
-  path_to_save_result: "./result"
+  launch_description: "T5_prediction"
+  path_to_save_result: "/home/d.maximov/data"
   save_examples: True
-  number_examples_batch: 3
+  number_examples_batch: 2
   gpt_postprocessing: True
 
 # Dataset
 dataset:
   # file_path: 'D:\\projects_andrey\\datasets_made\\fulldocs_txt.txt'
-  save_dir: 'data'
+  save_dir: '/home/d.maximov/data'
   # full_data - с сайта, part_data - размеченная с hugging face
   dataset_name: "made_valid_data"
   block_size: 128

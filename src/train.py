@@ -6,23 +6,24 @@ import os
 
 import wandb
 
-from logger_config.config import LOGGING_CONFIG
+from src.logger_config.config import LOGGING_CONFIG
 
 import hydra
-from modules.data import get_data, get_dataset
-from modules.model import get_tokenizer, get_model
+from src.modules.data import get_data, get_dataset
+from src.modules.model import get_tokenizer, get_model
 import torch
 import logging
 
 from transformers import DataCollatorForLanguageModeling
 from transformers import TrainingArguments
-from modules.engine import (
+from src.modules.engine import (
     train
 )
 from transformers import DataCollatorForSeq2Seq, Seq2SeqTrainingArguments
 
-from enities.training_pipeline_params import TrainingPipelineParams
-from modules.data import TypeTraining
+from src.enities.training_pipeline_params import TrainingPipelineParams
+from src.modules.data import TypeTraining
+from torch.nn.parallel import DataParallel
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -48,8 +49,8 @@ def training_pipeline(params: TrainingPipelineParams):
     logger.info(f'Get tokenizer {params.model.tokenizer_name}')
 
     model = get_model(params.model.model_name, device, params.model.local_path, params.model.use_local)
-    model.resize_token_embeddings(len(tokenizer))
-
+    model = DataParallel(model, device_ids=list(range(torch.cuda.device_count())))
+    model.to(device)
     logger.info('Model created')
 
     # Создание датасета
@@ -58,7 +59,7 @@ def training_pipeline(params: TrainingPipelineParams):
                                 input_max_length=params.model.input_max_length,
                                 target_max_length=params.model.target_max_length,
                                 model_name=params.model.model_name,
-                                type_training=TypeTraining.CLM)
+                                type_training=TypeTraining.TEACHER)
     print(device)
 
     if params.model.model_name.lower().find("gpt") != -1:
@@ -93,10 +94,10 @@ def training_pipeline(params: TrainingPipelineParams):
             per_device_train_batch_size=params.train_params.per_device_train_batch_size,
             optim='adafactor',
             num_train_epochs=params.train_params.num_train_epochs,
-            bf16=True,
+            fp16=True,
             report_to="wandb",
             output_dir=params.train_params.output_dir,
-            run_name='FRED-T5-1.7B',
+            run_name='FRED-T5-1.7B_mult_GPU',
         )
         optimizer = torch.optim.AdamW(model.parameters(), lr=params.train_params.lr)
 

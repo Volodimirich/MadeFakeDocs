@@ -13,18 +13,19 @@ import yaml
 # from pathlib import Path
 # from datetime import datetime
 # from datasets import load_dataset
-from modules.data import get_data, get_dataset
-from modules.model import get_tokenizer, get_model
-from logger_config.config import LOGGING_CONFIG
+from src.modules.data import get_data, get_dataset
+from src.modules.model import get_tokenizer, get_model
+from src.logger_config.config import LOGGING_CONFIG
 from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from src.enities.evaluation_pipeline_params import EvaluationPipelineParams
 from transformers import DataCollatorForSeq2Seq
 # from src.metrics.ranking_metrics import RankingMetrics, LaBSE, Bm25
-from modules.engine import predict
-from modules.data import TypeTraining
+from src.modules.engine import predict
+from src.modules.data import TypeTraining
 from torch.utils.data import DataLoader
 from docs_ranking_metrics import LaBSE, Bm25, RankingMetrics
 import datetime
+from torch.nn.parallel import DataParallel
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger()
@@ -32,7 +33,7 @@ logger = logging.getLogger()
 
 @hydra.main(version_base=None, config_path='../configs', config_name='predict_config')
 def predict_pipeline(params: EvaluationPipelineParams):
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
     folder_result_name = params.result.launch_description + '_' + \
                          str(datetime.datetime.now().strftime("%d-%m-%Y-%H-%M"))
 
@@ -41,7 +42,7 @@ def predict_pipeline(params: EvaluationPipelineParams):
     os.makedirs(folder_result_name, exist_ok=True)
     path_to_save_params = os.path.join(folder_result_name, "params.yaml")
     try:
-        shutil.copyfile(os.path.join('./configs', 'evaluate_config.yaml'), path_to_save_params)
+        shutil.copyfile(os.path.join('./configs', 'predict_config.yaml'), path_to_save_params)
     except FileNotFoundError:
         logger.warning("The configuration file could not be copied!")
 
@@ -57,7 +58,6 @@ def predict_pipeline(params: EvaluationPipelineParams):
     logger.info(f'Get tokenizer {params.model.tokenizer_name}')
 
     model = get_model(params.model.model_name, device, params.model.local_path, params.model.use_local)
-    model.resize_token_embeddings(len(tokenizer))
     # Создание датасета
     test_dataset = get_dataset(params.dataset, dataset_path_dict, tokenizer,
                                total_samples=params.model.total_samples,

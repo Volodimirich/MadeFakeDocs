@@ -84,6 +84,7 @@ def predict(batch_queries, model, tokenizer, device, predict_config):
                          num_beams=predict_config.num_beams,
                          temperature=predict_config.temperature,
                          top_p=predict_config.top_p,
+                         top_k=predict_config.top_k,
                          max_length=predict_config.max_length,
                          )
 

@@ -36,9 +36,9 @@ def get_data(dataset_dict: dict):
                      'test': os.path.join(data_path, 'test.jsonl'),
                      'val': os.path.join(data_path, 'val.jsonl')}
     elif dataset_name == 'made_data':
-        path_dict = {'train': os.path.join(data_path, 'filtred_df.csv'),
+        path_dict = {'train': os.path.join(data_path, 'train.csv'),
                      'test': None,
-                     'val': os.path.join(data_path, 'filtred_df.csv')}
+                     'val': os.path.join(data_path, 'train.csv')}
     elif dataset_name == 'made_valid_data':
         path_dict = {'train': os.path.join(data_path, 'val.json'),
                      'test': None,
@@ -258,7 +258,11 @@ def get_dataset(dataset_dict, path_list, tokenizer, model_name, total_samples=50
 
         train_dataset = dataset['train'].select(range(min(total_samples, len(dataset['train']))))
         if type_training == TypeTraining.TEACHER:
-            train_dataset = train_dataset.map(fun_process_data, batched=True, num_proc=num_proc)
+            train_dataset = train_dataset.map(fun_process_data, batched=True, num_proc=num_proc, remove_columns=["label", 'query',
+                                                                  "url", "title",
+                                                                  "meta",
+                                                                  "body",
+                                                                  "qlinks"])
         elif type_training == TypeTraining.CLM:
 
             if dataset_name == 'part_data':

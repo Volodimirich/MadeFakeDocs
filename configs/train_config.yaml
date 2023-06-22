@@ -5,21 +5,21 @@ basic:
 # Model
 model:
 # "t5-v1_1-small", "t5-v1_1-large", "ai-forever/FRED-T5-1.7B", "gpt2" "ai-forever/rugpt3large_based_on_gpt2"
-  model_name: "ai-forever/FRED-T5-large"
-  tokenizer_name: "ai-forever/FRED-T5-large"
+  model_name: "ai-forever/FRED-T5-1.7B"
+  tokenizer_name: "ai-forever/FRED-T5-1.7B"
   local_path: './result_t5_test'
   use_local: False
   path_save_model: str
-  input_max_length: 32
-  target_max_length: 32
-  total_samples: 500
-  type_of_training: "CLM"
+  input_max_length: 20
+  target_max_length: 750
+  total_samples: 1000000
+  type_of_training: "TEACHER"
 
 
 # Dataset
 dataset:
   # file_path: 'D:\\projects_andrey\\datasets_made\\fulldocs_txt.txt'
-  save_dir: 'data'
+  save_dir: '/home/d.maximov/data'
   # full_data - с сайта, part_data - размеченная с hugging face
   # made_data
   dataset_name: "made_data"
@@ -39,7 +39,7 @@ dataset:
 # TrainingArguments
 train_params:
   pre_trained: bool
-  output_dir: "./result_t5_test"
+  output_dir: "/home/d.maximov/data/models/t5_1.7B"
   overwrite_output_dir: True
   num_train_epochs: 40  # number of training epochs
   per_device_train_batch_size: 1  # batch size for training
@@ -48,4 +48,4 @@ train_params:
   gradient_accumulation_steps: 16   # to make "virtual" batch size larger
 
   # Optimizer
-  lr: 1e-5
+  lr: 1e-3
