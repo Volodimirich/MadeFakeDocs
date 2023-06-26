@@ -88,10 +88,11 @@ def evaluate(params: EvaluationPipelineParams):
         assert len(query) == len(sentences), "Размеры должны совпадать! Первое измерение BATCH_SIZE"
 
         generated_text = predict(row["input_ids"], model, tokenizer, device, params.model.predict_param)
+        # generated_text = "why? who what shose when shere how many"
 
         for ind in range(len(query)):
             updated_sequence = list(sentences[ind])
-            if params.result.gpt_postprocessing and params.model.model_name.find("gpt"):
+            if params.result.gpt_postprocessing and params.model.model_name.find("gpt") !=-1:
                 result_text = generated_text[ind][len(query[ind]):]
             else:
                 result_text = generated_text[ind]

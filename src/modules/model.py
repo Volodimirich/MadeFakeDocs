@@ -8,7 +8,7 @@ def get_tokenizer(tokenizer_name):
         tokenizer = GPT2Tokenizer.from_pretrained(tokenizer_name)
         if tokenizer.pad_token is None:
 
-            SPECIAL_TOKENS = {'bos_token': '<bos>', 'eos_token': '<eos>', 'pad_token': '<pad>', 'sep_token': '<sep>'}
+            SPECIAL_TOKENS = {'bos_token': '<bos>', 'eos_token': '<s>', 'pad_token': '<pad>', 'sep_token': '<sep>'}
             tokenizer.add_special_tokens(SPECIAL_TOKENS)
         tokenizer.padding_side = 'left'
         return tokenizer

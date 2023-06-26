@@ -31,7 +31,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger()
 
-def get_data_gpt(dataset_dict, tokenizer):
+def get_made_data_gpt(dataset_dict, tokenizer):
     from datasets import load_dataset
     """ Функция сохраняет """
     save_dir, dataset_name = dataset_dict.save_dir, dataset_dict.dataset_name
@@ -45,10 +45,34 @@ def get_data_gpt(dataset_dict, tokenizer):
     dataset = load_dataset('csv', data_files={'train': [train_path], "validation": [val_path]})
     name_folder = os.path.dirname(os.path.abspath(dataset_dict.path_to_save_txt))
     os.makedirs(name_folder, exist_ok=True)
-    dataset = dataset["train"].select(range(2))
+    dataset = dataset["train"]
     with open(dataset_dict.path_to_save_txt, "w", encoding="utf-8") as file:
         for text in dataset:
             file.write(text["query"] + " " + tokenizer.sep_token + " " + text["body"] + " " + tokenizer.eos_token)
+    return dataset_dict.path_to_save_txt
+
+def get_part_data_gpt(dataset_dict, tokenizer):
+    from datasets import load_dataset
+    """ Функция сохраняет """
+    save_dir, dataset_name = dataset_dict.save_dir, dataset_dict.dataset_name
+    data_path = os.path.join(save_dir, dataset_name)
+
+    path_dict = {'train': os.path.join(data_path, 'train.jsonl'),
+                 'test': None,
+                 'val': os.path.join(data_path, 'val.jsonl')}
+
+    train_path, test_path, val_path = path_dict['train'], path_dict['test'], path_dict['val']
+    dataset = load_dataset('json', data_files={'train': [train_path], "validation": [val_path]})
+    name_folder = os.path.dirname(os.path.abspath(dataset_dict.path_to_save_txt))
+    os.makedirs(name_folder, exist_ok=True)
+    dataset = dataset["train"]
+    with open(dataset_dict.path_to_save_txt, "w", encoding="utf-8") as file:
+        for example in dataset:
+            for ind in range(len(example["passages"]["is_selected"])):
+                if not example["passages"]["is_selected"][ind]:
+                    continue
+
+                file.write(example["query"] + " " + example["passages"]["passage_text"][ind] + " " + tokenizer.eos_token)
     return dataset_dict.path_to_save_txt
 
 
@@ -68,7 +92,13 @@ def training_pipeline(params: TrainingPipelineParams):
 
     tokenizer = get_tokenizer(params.model.tokenizer_name)
     logger.info(f'Get tokenizer {params.model.tokenizer_name}')
-    dataset_path = get_data_gpt(params.dataset, tokenizer)
+    if params.dataset.dataset_name == "made_data":
+        dataset_path = get_made_data_gpt(params.dataset, tokenizer)
+    elif params.dataset.dataset_name == "part_data":
+        dataset_path = get_part_data_gpt(params.dataset, tokenizer)
+    else:
+        raise NotImplementedError("This dataset is not supported!")
+
     train_dataset = TextDataset(tokenizer=tokenizer, file_path=dataset_path, block_size=params.dataset.block_size)
     model = get_model(params.model.model_name, device, params.model.local_path, params.model.use_local)
     # New
@@ -98,7 +128,7 @@ def training_pipeline(params: TrainingPipelineParams):
     )
     optimizer = torch.optim.AdamW(model.parameters(), lr=params.train_params.lr)
     logger.info('Starting trained...')
-    train(model, data_collator, train_dataset, training_args, optimizer, params)
+    train(model, data_collator, train_dataset, training_args, tokenizer, optimizer, params)
     logger.info('The training is completed!')
 
 

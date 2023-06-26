@@ -21,7 +21,7 @@ from modules.engine import (
 )
 from transformers import DataCollatorForSeq2Seq, Seq2SeqTrainingArguments
 
-from enities.training_pipeline_params import TrainingPipelineParams
+from src.enities.training_pipeline_params import TrainingPipelineParams
 from modules.data import TypeTraining
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -80,7 +80,7 @@ def training_pipeline(params: TrainingPipelineParams):
             warmup_steps=params.train_params.warmup_steps,  # number of warmup steps for learning rate scheduler
             gradient_accumulation_steps=params.train_params.gradient_accumulation_steps,
             # to make "virtual" batch size larger
-            report_to=None,
+            report_to="wandb",
             save_strategy="epoch",
             fp16=True
         )
