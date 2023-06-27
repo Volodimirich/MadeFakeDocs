@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
+import json
 
 
 def read_float_file(filename):
@@ -19,6 +20,8 @@ if __name__ == "__main__":
     models = [
         'T5_prediction_19-06-2023-18-54',
         'random',
+        'T5_prediction_22-06-2023-21-27',
+        'T5_prediction_22-06-2023-20-48',
         'T5_prediction_20-06-2023-17-58',
         'T5_prediction_20-06-2023-18-00',
         'T5_prediction_20-06-2023-18-22',
@@ -26,8 +29,10 @@ if __name__ == "__main__":
         'T5_prediction_20-06-2023-22-15'
         ]
     scores_suffixes = [
-        ['1.txt', '2.txt', '3.txt', '4.txt', '5.txt', '5_1_repeat.txt', '5_2_repeat.txt', '5_3_repeat.txt'],
+        ['1.txt', '2.txt', '3.txt', '4.txt', '5.txt', '5_1_repeat.txt', '5_2_repeat.txt'],
         ['5_random.txt'],
+        ['5_0_sampling.txt'],
+        ['5_0488_sampling.txt'],
         ['5_3416_bs.txt'],
         ['5_1952_sampling.txt'],
         ['5_1952_bs.txt'],
@@ -37,7 +42,10 @@ if __name__ == "__main__":
     for scores_suffix, model in zip(scores_suffixes, models):
         print(f'checkpoint: {model}')
         test_texts_file_path = f'/home/d.maximov/data/{model}/Examples.tsv'
-        df_test = pd.read_csv(test_texts_file_path, sep='\t', names=['query', 'passage'])
+        with open(test_texts_file_path, 'r') as file:
+            lines = file.readlines()
+            data = [line.split('\t') for line in lines]
+            df_test = pd.DataFrame(data, columns=['query', 'passage'])
         df_val_query = set(df_val['query'].unique())
         df_test_query = set(df_test['query'].unique())
         diff = df_val_query ^ df_test_query
@@ -48,7 +56,7 @@ if __name__ == "__main__":
                 val_results_file_path = f'/home/d.maximov/scores_val_ranking_model_{i + 1}.txt'
             else:
                 val_results_file_path = f'/home/d.maximov/scores_val_ranking_model_5.txt'
-
+            
             df_val['scores'] = read_float_file(val_results_file_path)
             df_val['is_model'] = 0
             
@@ -105,6 +113,44 @@ if __name__ == "__main__":
                 how='inner', on=['query', 'passage', 'is_model']
                 )
         # score_df.to_csv('/home/d.maximov/data/examples/texts_1952_sampling.csv', index=False)
+    with open('/home/d.maximov/data/made_valid_data/val.json', 'r') as f:
+        data = json.load(f)
+
+    labels_scores = read_float_file('/home/d.maximov/scores_val_ranking_model_5.txt')
+    i = 0
+    positions = {2: [], 3: []}
+    weights = {2: [], 3: []}
+    docs_count = []
+    for item in data:
+        labels = np.array(item['passages']['is_selected'])
+        temp_scores = np.array(labels_scores[i:i+len(labels)])
+        i += len(labels)
+        if 3 not in labels or 2 not in labels:
+            continue
+        temp_positions = {2: [], 3: []}
+        pos = len(labels)
+        for _, label in sorted(zip(temp_scores, labels)):
+            if label == 2:
+                temp_positions[2].append(pos)
+            if label == 3:
+                temp_positions[3].append(pos)
+            pos -= 1
+        assert pos == 0
+        for label in (2, 3):
+            positions[label].append(np.median(temp_positions[label]))
+            weights[label].append(len(labels) / len(temp_positions[label]))
+        docs_count.append(len(labels))
+    assert i == len(labels_scores)
+    for label in (2, 3):
+        print('Асессорская разметка')
+        print(f'label: {label}')
+        print(f'медианная позиция: {round(np.median(positions[label]), 2)}')
+        print(f'средне взвешенная позиция: {round(np.average(positions[label], weights=weights[label]), 2)}')
+        percent_pos = []
+        for pos, len_docks in zip(positions[label], docs_count):
+            percent_pos.append((pos - 1) / len_docks * 100)
+        print(f'медианная позиция в процентах: {round(np.median(percent_pos), 2)}%')
+
     for query in score_df['query'].unique():
         df = score_df[score_df['query'].eq(query)]
         print('#'*100)

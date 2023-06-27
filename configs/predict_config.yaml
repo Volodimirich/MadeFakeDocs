@@ -3,19 +3,19 @@ model:
 # "t5-v1_1-small", "t5-v1_1-large", "gpt2"
   model_name: "ai-forever/FRED-T5-1.7B"
   tokenizer_name: "ai-forever/FRED-T5-1.7B"
-  local_path: '/home/d.maximov/data/models/t5_1.7B/checkpoint-4880'
-  use_local: True
+  local_path: 'INIT'
+  use_local: False
   path_save_model: ""
   input_max_length: 20
   target_max_length: 750
   total_samples: 1000000
-  batch_size: 2
+  batch_size: 4
   predict_param:
-    do_sample: False
-    num_beams: 2
+    do_sample: True
+    num_beams: 1
     temperature: 1
-    top_p: Null
-    top_k: Null
+    top_p: 0.9
+    top_k: 50
     max_length: 750
 
 result:

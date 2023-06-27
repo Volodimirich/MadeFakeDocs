@@ -33,7 +33,7 @@ logger = logging.getLogger()
 
 @hydra.main(version_base=None, config_path='../configs', config_name='predict_config')
 def predict_pipeline(params: EvaluationPipelineParams):
-    device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     folder_result_name = params.result.launch_description + '_' + \
                          str(datetime.datetime.now().strftime("%d-%m-%Y-%H-%M"))
 
@@ -85,7 +85,7 @@ def predict_pipeline(params: EvaluationPipelineParams):
 
             examples = {
                 "query": query[ind],
-                "generated_text": result_text
+                "generated_text": result_text.replace('\n', ' ').replace('\t', ' ')
             }
             examples_of_generation.append(examples)
 
