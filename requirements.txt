@@ -1,6 +1,10 @@
 wandb
 hydra-core
 pandas
+nltk
+ftfy
+kenlm
+sentencepiece
 marshmallow_dataclass
 transformers
 python-dotenv==1.0.0
