@@ -8,18 +8,15 @@ import os
 import gc
 import ftfy
 import sys
-# import unicodedata
-# import numpy as np
-# from collections import defaultdict
 import functools
 from functools import partial
 from tqdm import tqdm
+from transformers import GPT2Tokenizer
 
 import nltk
 
 nltk.download('punkt')
 from nltk.tokenize import word_tokenize
-
 
 sys.path.insert(1, './cc_net')  # путь к репе
 
@@ -39,6 +36,14 @@ cutoff_path = './/cc_net\support_files//cutoff.csv'  # путь к файлу
 bucketer = PerplexityBucket(Path(cutoff_path), 40, 60)
 bucketer._prepare()
 bucketer.cutoffs['ru']
+
+tokenizer_gpt = GPT2Tokenizer.from_pretrained("ai-forever/rugpt3large_based_on_gpt2")
+
+if tokenizer_gpt.pad_token is None:
+    SPECIAL_TOKENS = {'bos_token': '<bos>', 'eos_token': '<s>', 'pad_token': '<pad>', 'sep_token': '<sep>'}
+    tokenizer_gpt.add_special_tokens(SPECIAL_TOKENS)
+
+tokenizer_gpt.padding_side = 'left'
 
 
 def make_bucket(item):
@@ -86,7 +91,8 @@ def check_rules(row,
                 good_labels,
                 good_tags,
                 end_body_markers,
-                rules_list_words):
+                rules_list_words,
+                tokenizer_gpt):
     """
     end_body_markers предполагаемые маркеры окончания тела текста
     """
@@ -99,7 +105,7 @@ def check_rules(row,
     if row.label in good_labels:
         ind = index_end_body(row.body, end_body_markers)
         body = row.body[:ind]
-        if len(body) < 200:
+        if len(body) < 200 or 1_000 < len(tokenizer_gpt.encode(body)):
             return False
 
         list_words = word_tokenize(body)
@@ -130,7 +136,8 @@ if __name__ == "__main__":
                                         good_tags=["head"],
                                         end_body_markers=["Мне нравится:", "Комментарии:", "Оценивайте пожалуйста:",
                                                           "Дата обращения:"],
-                                        rules_list_words=[check_presence_russian_words])
+                                        rules_list_words=[check_presence_russian_words],
+                                        tokenizer_gpt=tokenizer_gpt)
 
     with pd.read_csv(FILE, chunksize=CHUNKSIZE, sep='\t', names=COLUMNS, compression='gzip') as reader:
         for chunk in tqdm(reader):
