@@ -1,5 +1,6 @@
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, T5ForConditionalGeneration, T5Tokenizer
 import os
+import gdown
 
 
 def get_tokenizer(tokenizer_name):
@@ -35,8 +36,12 @@ def get_model(model_name, device, local_path='', is_local=False):
         raise NotImplementedError(f"This model is not supported!")
 
 # ЭТО НЕ БЫДЛОКОД, ЧЕСТНО. ЭТО ОПТИМАЛЬНЫЙ ЗАПУСК
-def get_fred(message, device, model_folder):
-    url = 'https://drive.google.com/drive/folders/1HJdnhfKA4jZw09_N7LbQp4De1nGAUdil?usp=sharing'
+def get_fred(message, device, model_folder, model_version, words_amount):
+    if model_version == 'fred-human':
+        url = 'https://drive.google.com/drive/folders/1HJdnhfKA4jZw09_N7LbQp4De1nGAUdil?usp=sharing'
+    elif model_version == 'fred-ranking':
+        url = 'https://drive.google.com/drive/folders/15iAyoF6wS0tOVxd9dDaZJfcHK35jBRLN?usp=sharing'
+        
     if not os.path.exists(model_folder):
         gdown.download_folder(url, output=model_folder, quiet=False)
     tokenizer = GPT2Tokenizer.from_pretrained(model_folder, eos_token='</s>')
@@ -48,10 +53,10 @@ def get_fred(message, device, model_folder):
         inp = tokenizer(text, truncation=True, max_length=20, return_tensors='pt').input_ids.to(device)
         res = model.generate(
             input_ids=inp,
-            max_length=750,
+            max_length=words_amount,
             do_sample=True,
             top_k=50,
-            top_p=0.85,
+            top_p=0.9,
         )
         return tokenizer.decode(res[0], skip_special_tokens=True)
-    return predict(message, model)
+    return predict('<LM>' + message, model)

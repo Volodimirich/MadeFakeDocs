@@ -24,11 +24,12 @@ def get_result(message, chat_id):
     device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
     model_name = user_settings[chat_id]['model']
     words = user_settings[chat_id]['word_count']
-    if model_name == 'ai-forever/rugpt3large_based_on_gpt2':
+    if model_name == 'sber-large' :
         model = get_model(model_name, device, 'checkpoints/checkpoint-135', True)
-    elif model_name == 'ai-forever/FRED-T5-large':
-        model_folder = 'checkpoint/fred'
-        return get_fred(message, device, model_folder)
+    elif model_name  in {'fred-human', 'fred-ranking'}:
+        model_folder = f'checkpoint/{model_name}'
+        user_settings[chat_id]['mode'] = 'input'
+        return get_fred(message, device, model_folder, model_name, words)
     else:
         model = get_model(model_name, device, local_path, False)        
     tokenizer = get_tokenizer(model_name)
@@ -56,7 +57,7 @@ def get_result(message, chat_id):
 def init_user(id_val):
     if id_val not in user_settings:
         user_settings[id_val] = {}
-        user_settings[id_val]['model'] = 'gpt2'
+        user_settings[id_val]['model'] = 'sber-large'
         user_settings[id_val]['word_count'] = 100
         user_settings[id_val]['mode'] = 'input'
 
@@ -64,10 +65,44 @@ def init_user(id_val):
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     init_user(message.chat.id)
-    bot.reply_to(message, 'Hi there, I am FakeDocsBot. Please write text to start.')
+    # Да простят меня боги за эту строчку. Но веселиться с форматированием сообщений в 2 ночи я пока не хочу)
+    bot.reply_to(message, 
+                 """Hi there, I am FakeDocsBot. \nAvalible commands: \n   /start - it's me, Mario \n   /settings - get settings menu \n   /info - get full information about bot""")
+    
+    
+    
+    
+    # Создаем клавиатуру
+    keyboard = types.ReplyKeyboardMarkup(row_width=3, resize_keyboard=True)
+    
+    # Добавляем кнопки на клавиатуру
+    start_buttom = types.KeyboardButton('/start')
+    set_button = types.KeyboardButton('/settings')
+    info_button = types.KeyboardButton('/info')
+    keyboard.add(start_buttom, set_button, info_button)
+    response_text = 'Main commands:'
+    # Отправляем сообщение с клавиатурой
+    bot.send_message(message.chat.id, response_text, reply_markup=keyboard)
+
     # logger.info('Sending hello message, chat id - %i', message.chat.id)
     
 # Обработчик команды /settings
+@bot.message_handler(commands=['info'])
+def settings(message):
+    bot.reply_to(message, 
+                 """Настройки модели могут быть изменены с помощью команды /settings. Имеются следующие опции:\n\
+\n\
+Выбор опций:\n 
+В данный момент могут быть использованы одна из 2 моделей, ai-forever/FRED-T5-1.7B и ai-forever/rugpt3medium_based_on_gpt2\n\
+Имеются разные методы, ranking best выдает тексты которые дают хорошие результаты для ранжировщика, human best читаемые для человека\n\
+Дополнительной опцией является количество токенов, их количество ограничено от 10 до 1023.\n\
+    \n\
+По умолчанию выбрана модель ai-forever/rugpt3medium_based_on_gpt2 c количеством токенов равным 100.\n\
+    \n\
+Для получения текста просто напишете запрос боту и подождите.\n\
+""")
+
+
 @bot.message_handler(commands=['settings'])
 def settings(message):
     init_user(message.chat.id)
@@ -76,7 +111,7 @@ def settings(message):
 
     # Создание кнопок для модели, количества слов и текущих параметров
     button_model = types.InlineKeyboardButton('Выбор модели', callback_data='model')
-    button_word_count = types.InlineKeyboardButton('Количество слов', callback_data='word_count')
+    button_word_count = types.InlineKeyboardButton('Количество токенов', callback_data='word_count')
     button_current_settings = types.InlineKeyboardButton('Текущие параметры', callback_data='current_settings')
 
     # Добавление кнопок на клавиатуру
@@ -92,15 +127,15 @@ def handle_model_choice(call):
     chat_id = call.message.chat.id
     init_user(chat_id)
     model = call.data.split('_')[1]
-    model_matcher = {'gpt2': 'gpt2', 'sber-large' :'ai-forever/rugpt3large_based_on_gpt2',
-                     'sber-medium': 'ai-forever/rugpt3medium_based_on_gpt2', 
-                     'fred': "ai-forever/FRED-T5-large",
-                     't5-small': 'flan-t5-small', 't5-big': 'flan-t5-large'}
+    # model_matcher = {'gpt2': 'gpt2', 'sber-large' :'ai-forever/rugpt3large_based_on_gpt2',
+                    #  'sber-medium': 'ai-forever/rugpt3medium_based_on_gpt2', 
+                    #  'fred': "ai-forever/FRED-T5-large",
+                    #  't5-small': 'flan-t5-small', 't5-big': 'flan-t5-large'}
 
 
     # Сохранение выбранной модели в user_settings
-    user_settings[chat_id]['model'] = model_matcher[model]
-    bot.send_message(chat_id, f'Выбрана модель: {model_matcher[model]}')
+    user_settings[chat_id]['model'] = model
+    bot.send_message(chat_id, f'Выбрана модель: {model}')
     user_settings[chat_id]['mode'] = 'input'
 
 
@@ -125,7 +160,9 @@ def handle_inline_button_click(call):
         # Отправка текущих параметров пользователя
         if chat_id in user_settings:
             current_settings = user_settings[chat_id]
-            bot.send_message(chat_id, f'Текущие параметры:\nМодель: {current_settings["model"]}\nКоличество слов: {current_settings["word_count"]}')
+            bot.send_message(chat_id, f'Текущие параметры:\n\
+                    Модель: {current_settings["model"]}\n\
+                    Количество слов: {current_settings["word_count"]}')
         else:
             bot.send_message(chat_id, 'Текущие параметры не найдены.')
 
@@ -162,21 +199,16 @@ def handle_text_input(message):
 # Функция для получения Inline Keyboard Markup для выбора модели
 def get_model_keyboard():
     # Создание объекта клавиатуры
-    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
 
     # Создание кнопок для модели
-    button_gpt2 = types.InlineKeyboardButton('gpt2 (eng only)', callback_data='model_gpt2')
-    button_fred = types.InlineKeyboardButton('fred', callback_data='model_fred')
-    
-    button_t5_rugpt_big = types.InlineKeyboardButton('rugpt_large', callback_data='model_sber-large')
-    button_t5_rugpt_mid = types.InlineKeyboardButton('rugpt_medium (pretrained)', callback_data='model_sber-medium')
+    button_fred_human = types.InlineKeyboardButton('T5-FRED human best', callback_data='model_fred-human')
+    button_fred_rank = types.InlineKeyboardButton('T5-FRED ranking best', callback_data='model_fred-ranking')
 
-    # button_t5_small = types.InlineKeyboardButton('t5_small', callback_data='model_t5-small')
-    # button_t5_big = types.InlineKeyboardButton('t5_big', callback_data='model_t5-big')
-    
+    button_rugpt_human = types.InlineKeyboardButton('GPT human best', callback_data='model_sber-large')
     
     # Добавление кнопок на клавиатуру
-    keyboard.add(button_gpt2, button_fred, button_t5_rugpt_mid, button_t5_rugpt_big)
+    keyboard.add(button_fred_human, button_fred_rank, button_rugpt_human)
 
     return keyboard
 
