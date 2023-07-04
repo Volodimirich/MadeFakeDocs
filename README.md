@@ -4,7 +4,7 @@
 Главная задача, научиться генерировать текста, оцениваемые моделями ранжированиями выше, 
 чем релевантные текста для данного запроса. 
 
-Для оценки использовалась бибилиотека [docs-ranking-metrics](https://pypi.org/project/docs-ranking-metrics/).
+Для оценки использовалась библиотека [docs-ranking-metrics](https://pypi.org/project/docs-ranking-metrics/).
 
 Подробнее о проведенных экспериментах смотрите в каталоге `description_experiments`
 
